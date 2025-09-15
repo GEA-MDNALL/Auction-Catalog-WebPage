@@ -17,9 +17,27 @@
 
   /* --- Card image slider --- */
   .catalog-item .thumb { width: 100%; aspect-ratio: 4/3; background:#fff; position: relative; overflow: hidden; }
-  .thumb .rail { display: flex; height: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; scrollbar-width: none; }
+  .thumb .rail { 
+    display: flex; 
+    height: 100%; 
+    overflow-x: auto; 
+    scroll-snap-type: x mandatory; 
+    scroll-behavior: smooth; 
+    scrollbar-width: none; 
+    -webkit-overflow-scrolling: touch;
+    scroll-padding: 0;
+  }
   .thumb .rail::-webkit-scrollbar { display: none; }
-  .thumb .rail img { flex: 0 0 100%; width: 100%; height: 100%; object-fit: contain; background:#fff; scroll-snap-align: center; user-select: none; }
+  .thumb .rail img { 
+    flex: 0 0 100%; 
+    width: 100%; 
+    height: 100%; 
+    object-fit: contain; 
+    background:#fff; 
+    scroll-snap-align: start; 
+    scroll-snap-stop: always;
+    user-select: none; 
+  }
   
   /* Dots indicator for multiple images */
   .thumb .dots {
@@ -67,9 +85,25 @@
 
   /* Pure white image area */
   .m-media { position: relative; background: #fff; border-radius: 10px; overflow: hidden; min-height: 400px; height: 60vh; max-height: 600px; display: flex; flex-direction: column; }
-  .m-rail { display: flex; flex: 1; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; scrollbar-width: none; background:#fff; }
+  .m-rail { 
+    display: flex; 
+    flex: 1; 
+    overflow-x: auto; 
+    scroll-snap-type: x mandatory; 
+    scroll-behavior: smooth; 
+    scrollbar-width: none; 
+    background:#fff; 
+    -webkit-overflow-scrolling: touch;
+    scroll-padding: 0;
+  }
   .m-rail::-webkit-scrollbar { display: none; }
-  .m-rail .slide { flex: 0 0 100%; height: 100%; position: relative; }
+  .m-rail .slide { 
+    flex: 0 0 100%; 
+    height: 100%; 
+    position: relative;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
   .zoom-wrap { width: 100%; height: 100%; overflow: hidden; touch-action: none; cursor: grab; }
   .zoom-wrap:active { cursor: grabbing; }
   .zoom-img { width: 100%; height: 100%; object-fit: contain; transform-origin: 50% 50%; will-change: transform; user-drag: none; user-select: none; }
@@ -296,7 +330,7 @@
     return `https://drive.google.com/thumbnail?id=${encodeURIComponent(t)}&sz=w1600`;
   }
 
-  /* Pull ALL images by header pattern + multi-value cells */
+  /* Pull ALL images - expanded to catch all patterns */
   function imagesFromRow(r){
     const out = new Set();
     const pushToken = (tok) => {
@@ -306,14 +340,37 @@
         if (p) out.add(p);
       });
     };
+    
+    // Check ALL columns for any image-related patterns
     for (const [key, val] of Object.entries(r)){
       if (!val) continue;
       const k = String(key).trim();
-      if (/^(image(url)?\d*|driveid\d*)$/i.test(k)) {
+      
+      // Check if column name contains image-related keywords (case insensitive)
+      if (/image|img|photo|pic|driveid/i.test(k)) {
+        pushToken(val);
+      }
+      // Also check columns that end with numbers (like ImageURL1, ImageURL2, etc)
+      else if (/\d+$/.test(k) && /image|img|photo|pic/i.test(k)) {
+        pushToken(val);
+      }
+      // Check columns that are just numbers (1, 2, 3, etc)
+      else if (/^\d+$/.test(k)) {
         pushToken(val);
       }
     }
-    if (r["Images"]) pushToken(r["Images"]);
+    
+    // Check specific column names that might not match the patterns above
+    const specificColumns = ["Images", "ImageURL", "Image", "Photo", "Picture", "DriveID"];
+    for (const col of specificColumns) {
+      if (r[col]) pushToken(r[col]);
+      // Also check numbered versions
+      for (let i = 1; i <= 15; i++) {
+        if (r[col + i]) pushToken(r[col + i]);
+        if (r[col + "_" + i]) pushToken(r[col + "_" + i]);
+      }
+    }
+    
     return Array.from(out);
   }
 
@@ -397,11 +454,18 @@
       const imgs = imagesFromRow(it);
       let thumbHtml = "";
       if (imgs.length){
-        const slides = imgs.map(u =>
+        // Clone first and last for infinite scroll effect
+        const extendedImgs = [...imgs];
+        if (imgs.length > 1) {
+          extendedImgs.push(imgs[0]); // Add first image at end
+          extendedImgs.unshift(imgs[imgs.length - 1]); // Add last image at start
+        }
+        
+        const slides = extendedImgs.map(u =>
           `<img referrerpolicy="no-referrer" src="${eattr(toImageUrl(u))}" alt="${esc(it[COLS.title]||"Item image")}" loading="lazy">`
         ).join("");
         const dots = imgs.length > 1 ? `<div class="dots">${imgs.map((_, i) => `<span class="${i===0?'active':''}"></span>`).join('')}</div>` : "";
-        thumbHtml = `<div class="thumb"><div class="rail">${slides}</div>${dots}</div>`;
+        thumbHtml = `<div class="thumb"><div class="rail" data-real-count="${imgs.length}">${slides}</div>${dots}</div>`;
       }else{
         thumbHtml = `<div class="thumb"></div>`;
       }
@@ -426,6 +490,16 @@
       frag.appendChild(card);
     }
     $catalog.appendChild(frag);
+    
+    // Initialize card rails with proper starting position
+    setTimeout(() => {
+      document.querySelectorAll('.thumb .rail[data-real-count]').forEach(rail => {
+        const count = parseInt(rail.dataset.realCount);
+        if (count > 1) {
+          rail.scrollLeft = rail.clientWidth; // Start at first real image
+        }
+      });
+    }, 100);
   }
 
   // Open modal on card click
@@ -448,7 +522,7 @@
     openModal(idx);
   });
 
-  // Track card image scrolling for dots
+  // Track card image scrolling for dots with looping
   $catalog.addEventListener("scroll", (e)=>{
     const rail = e.target.closest(".rail");
     if (!rail) return;
@@ -456,9 +530,38 @@
     const dots = thumb.querySelector(".dots");
     if (!dots) return;
     
-    const idx = Math.round(rail.scrollLeft / rail.clientWidth);
+    const realCount = parseInt(rail.dataset.realCount);
+    if (realCount <= 1) return;
+    
+    const slideWidth = rail.clientWidth;
+    const currentScroll = rail.scrollLeft;
+    
+    // Calculate actual image index (accounting for cloned images)
+    let visualIdx = Math.round(currentScroll / slideWidth);
+    let realIdx = visualIdx - 1; // Subtract 1 because of prepended clone
+    
+    // Handle looping
+    if (visualIdx === 0) {
+      // Scrolled to clone of last image at beginning
+      setTimeout(() => {
+        rail.scrollLeft = realCount * slideWidth;
+        realIdx = realCount - 1;
+      }, 50);
+    } else if (visualIdx === realCount + 1) {
+      // Scrolled to clone of first image at end
+      setTimeout(() => {
+        rail.scrollLeft = slideWidth;
+        realIdx = 0;
+      }, 50);
+    }
+    
+    // Ensure realIdx is within bounds
+    if (realIdx < 0) realIdx = realCount - 1;
+    if (realIdx >= realCount) realIdx = 0;
+    
+    // Update dots
     const dotElements = dots.querySelectorAll("span");
-    dotElements.forEach((d, i) => d.classList.toggle("active", i === idx));
+    dotElements.forEach((d, i) => d.classList.toggle("active", i === realIdx));
   }, true);
 
   // Modal logic
@@ -487,13 +590,22 @@
   }
   
   function buildModalSlides(imgs, title){
-    $modalRail.innerHTML = imgs.map(u=>(
+    // Clone first and last for infinite scroll
+    const extendedImgs = [...imgs];
+    if (imgs.length > 1) {
+      extendedImgs.push(imgs[0]); // Add first at end
+      extendedImgs.unshift(imgs[imgs.length - 1]); // Add last at start
+    }
+    
+    $modalRail.innerHTML = extendedImgs.map(u=>(
       `<div class="slide">
          <div class="zoom-wrap">
            <img referrerpolicy="no-referrer" class="zoom-img" src="${eattr(toImageUrl(u))}" alt="${esc(title||'Item image')}">
          </div>
        </div>`
     )).join("");
+    
+    $modalRail.dataset.realCount = imgs.length;
   }
   
   function buildModalThumbs(imgs, title){
@@ -554,8 +666,14 @@
     
     $modal.classList.add("open");
     $modal.setAttribute("aria-hidden","false");
-    $modalRail.scrollLeft = 0;
-    attachSlideRefs(0);
+    
+    // Start at first real image (index 1 because of prepended clone)
+    if (imgs.length > 1) {
+      $modalRail.scrollLeft = $modalRail.clientWidth;
+    } else {
+      $modalRail.scrollLeft = 0;
+    }
+    attachSlideRefs(imgs.length > 1 ? 1 : 0);
   }
 
   function closeModal(){
@@ -572,19 +690,55 @@
     const btn = e.target.closest("button[data-idx]"); 
     if (!btn) return;
     const idx = parseInt(btn.getAttribute("data-idx"), 10);
-    $modalRail.scrollTo({ left: idx * $modalRail.clientWidth, behavior: "smooth" });
-    attachSlideRefs(idx); 
+    const realCount = parseInt($modalRail.dataset.realCount);
+    
+    if (realCount > 1) {
+      // Account for prepended clone
+      $modalRail.scrollTo({ left: (idx + 1) * $modalRail.clientWidth, behavior: "smooth" });
+      attachSlideRefs(idx + 1);
+    } else {
+      $modalRail.scrollTo({ left: idx * $modalRail.clientWidth, behavior: "smooth" });
+      attachSlideRefs(idx);
+    }
     updateActiveThumb(idx);
   });
 
-  // Track current slide on scroll end
+  // Track current slide on scroll end with looping
   let scrollTimer=null;
   $modalRail.addEventListener("scroll", ()=>{
     clearTimeout(scrollTimer);
     scrollTimer = setTimeout(()=>{
-      const idx = Math.round($modalRail.scrollLeft / $modalRail.clientWidth);
-      attachSlideRefs(idx);
-      updateActiveThumb(idx);
+      const realCount = parseInt($modalRail.dataset.realCount);
+      if (!realCount || realCount <= 1) {
+        attachSlideRefs(0);
+        updateActiveThumb(0);
+        return;
+      }
+      
+      const slideWidth = $modalRail.clientWidth;
+      const currentScroll = $modalRail.scrollLeft;
+      
+      // Calculate visual index
+      let visualIdx = Math.round(currentScroll / slideWidth);
+      let realIdx = visualIdx - 1; // Account for prepended clone
+      
+      // Handle looping
+      if (visualIdx === 0) {
+        // At clone of last image
+        $modalRail.scrollLeft = realCount * slideWidth;
+        realIdx = realCount - 1;
+      } else if (visualIdx === realCount + 1) {
+        // At clone of first image
+        $modalRail.scrollLeft = slideWidth;
+        realIdx = 0;
+      }
+      
+      // Ensure realIdx is within bounds
+      if (realIdx < 0) realIdx = realCount - 1;
+      if (realIdx >= realCount) realIdx = 0;
+      
+      attachSlideRefs(visualIdx);
+      updateActiveThumb(realIdx);
     }, 80);
   });
 
