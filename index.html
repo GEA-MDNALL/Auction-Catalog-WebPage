@@ -20,8 +20,31 @@
   .thumb .rail { display: flex; height: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; scrollbar-width: none; }
   .thumb .rail::-webkit-scrollbar { display: none; }
   .thumb .rail img { flex: 0 0 100%; width: 100%; height: 100%; object-fit: contain; background:#fff; scroll-snap-align: center; user-select: none; }
-  .thumb .nav { position: absolute; top: 0; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 0 8px; pointer-events: none; }
-  .thumb .nav button { pointer-events: auto; border: 0; background: rgba(0,0,0,0.5); color: #fff; font-size: 18px; line-height: 1; width: auto; height: auto; border-radius: 4px; padding: 8px 10px; }
+  
+  /* Dots indicator for multiple images */
+  .thumb .dots {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+    padding: 4px 8px;
+    background: rgba(255,255,255,0.9);
+    border-radius: 20px;
+  }
+  .thumb .dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.3);
+    transition: all 0.3s ease;
+  }
+  .thumb .dots span.active {
+    background: #000;
+    width: 8px;
+    height: 8px;
+  }
 
   .catalog-item .pad { padding: 14px; display: flex; flex-direction: column; flex: 1; }
   .catalog-item h3 { margin: 6px 0 8px; font-size: 18px; }
@@ -51,15 +74,14 @@
   .zoom-wrap:active { cursor: grabbing; }
   .zoom-img { width: 100%; height: 100%; object-fit: contain; transform-origin: 50% 50%; will-change: transform; user-drag: none; user-select: none; }
 
-  .m-nav { position: absolute; top: 50%; transform: translateY(-50%); left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 0 8px; pointer-events: none; z-index: 10; }
-  .m-nav button { pointer-events: auto; border: 0; background: rgba(0,0,0,0.6); color: #fff; font-size: 22px; line-height: 1; width: auto; height: auto; border-radius: 4px; padding: 10px 12px; }
-  .m-nav button:hover { background: rgba(0,0,0,0.8); }
+  /* Hide modal navigation since we have thumbnails */
+  .m-nav { display: none !important; }
 
   .m-info .price { margin: 6px 0 14px; font-size: 18px; }
   .m-info .btn-row { margin-top: 14px; }
   #modal-desc { font-size:14px; color:#555; white-space: pre-line; }
 
-  /* Modal thumbnail strip - FIXED */
+  /* Modal thumbnail strip */
   .m-thumbs { 
     display: flex !important; 
     gap: 8px; 
@@ -90,17 +112,9 @@
   .m-thumbs button:hover { transform: scale(1.05); }
   .m-thumbs img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .m-thumbs button.is-active { 
-    pointer-events: auto; 
-  border: 0; 
-  background: transparent; 
-  color: #000; 
-  font-size: 22px; 
-  line-height: 1; 
-  width: auto; 
-  height: auto; 
-  border-radius: 0; 
-  padding: 10px 12px; 
-}
+    border-color: #000; 
+    box-shadow: 0 0 0 1px #000 inset;
+  }
 
   /* Specs list */
   .specs { font-size: 14px; line-height: 1.6; margin: 6px 0 10px; }
@@ -165,8 +179,6 @@
       flex: 1;
       overflow: auto;
     }
-
-    .m-nav button { font-size: 20px; padding: 8px 10px; }
   }
 
   @media (orientation: landscape) and (max-width: 900px){
@@ -388,8 +400,8 @@
         const slides = imgs.map(u =>
           `<img referrerpolicy="no-referrer" src="${eattr(toImageUrl(u))}" alt="${esc(it[COLS.title]||"Item image")}" loading="lazy">`
         ).join("");
-        const nav = imgs.length>1 ? `<div class="nav"><button class="prev" aria-label="Previous">‹</button><button class="next" aria-label="Next">›</button></div>` : "";
-        thumbHtml = `<div class="thumb"><div class="rail">${slides}</div>${nav}</div>`;
+        const dots = imgs.length > 1 ? `<div class="dots">${imgs.map((_, i) => `<span class="${i===0?'active':''}"></span>`).join('')}</div>` : "";
+        thumbHtml = `<div class="thumb"><div class="rail">${slides}</div>${dots}</div>`;
       }else{
         thumbHtml = `<div class="thumb"></div>`;
       }
@@ -418,7 +430,6 @@
 
   // Open modal on card click
   $catalog.addEventListener("click", (e)=>{
-    if (e.target.closest(".thumb .nav button")) return;
     if (e.target.closest("a")) return;
     const card = e.target.closest(".catalog-item");
     if (!card) return;
@@ -437,14 +448,18 @@
     openModal(idx);
   });
 
-  // Card slider arrows
-  $catalog.addEventListener("click", (e)=>{
-    const prev = e.target.closest(".thumb .prev");
-    const next = e.target.closest(".thumb .next");
-    if (!prev && !next) return;
-    const rail = e.target.closest(".thumb").querySelector(".rail");
-    rail.scrollBy({ left: (next ? 1 : -1) * rail.clientWidth, behavior: "smooth" });
-  });
+  // Track card image scrolling for dots
+  $catalog.addEventListener("scroll", (e)=>{
+    const rail = e.target.closest(".rail");
+    if (!rail) return;
+    const thumb = rail.closest(".thumb");
+    const dots = thumb.querySelector(".dots");
+    if (!dots) return;
+    
+    const idx = Math.round(rail.scrollLeft / rail.clientWidth);
+    const dotElements = dots.querySelectorAll("span");
+    dotElements.forEach((d, i) => d.classList.toggle("active", i === idx));
+  }, true);
 
   // Modal logic
   let scale=1, minScale=1, maxScale=4, tx=0, ty=0;
@@ -479,7 +494,6 @@
          </div>
        </div>`
     )).join("");
-    $modalNav.style.display = imgs.length > 1 ? "" : "none";
   }
   
   function buildModalThumbs(imgs, title){
@@ -552,13 +566,6 @@
   document.querySelector("#item-modal .close").addEventListener("click", closeModal);
   $modal.addEventListener("click", (e)=>{ if (e.target === $modal) closeModal(); });
   document.addEventListener("keydown", (e)=>{ if (e.key === "Escape") closeModal(); });
-
-  // Modal arrows
-  $modalNav.addEventListener("click", (e)=>{
-    const btn = e.target.closest("button[data-dir]"); 
-    if (!btn) return;
-    $modalRail.scrollBy({ left: parseInt(btn.getAttribute("data-dir"),10) * $modalRail.clientWidth, behavior: "smooth" });
-  });
   
   // Thumbnail clicks
   $modalThumbs.addEventListener("click", (e)=>{
