@@ -1,8 +1,6 @@
-<!doctype html>
 <meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Catalog</title>
-<style type="text/css">
-  :root { --gap: 20px; --card-radius: 14px; --max: 1200px; }
+<title></title>
+<style type="text/css">:root { --gap: 20px; --card-radius: 14px; --max: 1200px; }
   body { font-family: Arial, sans-serif; margin: 0; padding: 24px; background: #fafafa; }
   .catalog-toolbar { max-width: var(--max); margin: 0 auto 12px; display: flex; gap: 12px; }
   .catalog-toolbar input[type="search"] { flex: 1 1 280px; padding: 12px 14px; border: 1px solid #ddd; border-radius: 10px; font-size: 16px; }
@@ -12,24 +10,15 @@
   .catalog-item:hover { transform: translateY(-3px); }
   .catalog-item[role="button"] { cursor: pointer; }
 
+  /* --- Card image slider --- */
   .catalog-item .thumb { width: 100%; aspect-ratio: 4/3; background:#fff; position: relative; overflow: hidden; }
   .thumb .rail { display: flex; height: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; scrollbar-width: none; }
   .thumb .rail::-webkit-scrollbar { display: none; }
+  /* contain so nothing is cropped */
   .thumb .rail img { flex: 0 0 100%; width: 100%; height: 100%; object-fit: contain; background:#fff; scroll-snap-align: center; user-select: none; }
-
-  .thumb .nav {
-    position: absolute; inset: 0;
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 0 8px;
-    pointer-events: none;
-    z-index: 5;
-  }
-  .thumb .nav button {
-    pointer-events: auto;
-    border: 0; background: transparent; color: #000; text-shadow: 0 1px 2px rgba(0,0,0,.9), 0 0 8px rgba(0,0,0,.5);
-    font-size: 20px; font-weight: 800; line-height: 1; width: auto; height: auto; border-radius: 0; padding: 8px 10px;
-    cursor: pointer;
-  }
+  /* UPDATED: edge-aligned, vertically centered, no circles */
+  .thumb .nav { position: absolute; top: 0; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 0 8px; pointer-events: none; }
+  .thumb .nav button { pointer-events: auto; border: 0; background: transparent; color: #fff; font-size: 18px; line-height: 1; width: auto; height: auto; border-radius: 0; padding: 8px 10px; }
 
   .catalog-item .pad { padding: 14px; display: flex; flex-direction: column; flex: 1; }
   .catalog-item h3 { margin: 6px 0 8px; font-size: 18px; }
@@ -41,15 +30,17 @@
   .btn:hover { background:#333; }
   .empty { max-width: var(--max); margin: 30px auto; color:#666; text-align:center; }
 
+  /* --- Modal (responsive, pinch zoom + drag pan) --- */
   .modal { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; align-items: center; justify-content: center; padding: 28px; z-index: 1000; }
   .modal.open { display: flex; }
-  .modal .dialog { background: #fff; border-radius: 14px; width: min(96vw, 1200px); overflow: hidden; }
+  .modal .dialog { background: #fff; border-radius: 14px; width: min(98vw, 1600px); overflow: hidden; }
   .modal .header { display:flex; justify-content: space-between; align-items:center; padding: 14px 16px; border-bottom: 1px solid #eee; }
   .modal .header h2 { font-size: 22px; margin: 0; }
   .modal .close { border: 0; background: #000; color:#fff; border-radius: 999px; padding:6px 12px; cursor: pointer; font-weight: 700; }
-  .modal .body { display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; padding: 16px; }
+  .modal .body { display: grid; grid-template-columns: 1.35fr 1fr; gap: 16px; padding: 16px; }
 
-  .m-media { position: relative; background: #fff; border-radius: 10px; overflow: hidden; min-height: clamp(360px, 55vh, 740px); }
+  /* Pure white image area */
+  .m-media { position: relative; background: #fff; border-radius: 10px; overflow: hidden; min-height: clamp(420px, 62vh, 860px); }
   .m-rail { display: flex; height: 100%; aspect-ratio: 4/3; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; scrollbar-width: none; background:#fff; }
   .m-rail::-webkit-scrollbar { display: none; }
   .m-rail .slide { flex: 0 0 100%; height: 100%; position: relative; }
@@ -57,41 +48,21 @@
   .zoom-wrap:active { cursor: grabbing; }
   .zoom-img { width: 100%; height: 100%; object-fit: contain; transform-origin: 50% 50%; will-change: transform; user-drag: none; user-select: none; }
 
-  ..m-nav {
-  position: absolute;
-  inset: 0 0 calc(0 + env(safe-area-inset-bottom)) 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 8px;
-  pointer-events: none;
-  z-index: 5;
-}
-.m-nav button {
-  pointer-events: auto;
-  border: 0;
-  background: transparent;
-  color: #000;
-  font-size: 22px;
-  font-weight: 800;
-  line-height: 1;
-  width: auto;
-  height: auto;
-  border-radius: 0;
-  padding: 10px 12px;
-  cursor: pointer;
-}
-
+  /* UPDATED: edge-aligned, vertically centered, no circles */
+  .m-nav { position: absolute; top: 0; bottom: calc(0 + env(safe-area-inset-bottom)); left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 0 8px; pointer-events: none; }
+  .m-nav button { pointer-events: auto; border: 0; background: transparent; color: #fff; font-size: 22px; line-height: 1; width: auto; height: auto; border-radius: 0; padding: 10px 12px; }
 
   .m-info .price { margin: 6px 0 14px; font-size: 18px; }
   .m-info .btn-row { margin-top: 14px; }
   #modal-desc { font-size:14px; color:#555; white-space: pre-line; }
 
+  /* Specs list (optional) */
   .specs { font-size: 18px; line-height: 1.6; margin: 6px 0 10px; }
   .specs .spec-row { margin: 6px 0; }
   .specs .spec-label { font-weight: 800; }
   .specs .spec-val { font-weight: 400; }
 
+  /* ---------- Mobile: full-bleed image ---------- */
   @media (max-width: 600px){
     body { padding: 12px; }
     .catalog-container { gap: 14px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
@@ -106,6 +77,7 @@
     .m-rail { aspect-ratio: auto; }
     .m-info { padding: 12px; }
 
+    /* UPDATED: remove fixed size since buttons are no longer circular */
     .m-nav button { width: auto; height: auto; font-size: 20px; }
   }
 
@@ -116,53 +88,50 @@
 
   @media (min-width: 601px) and (max-width: 1000px){
     .modal .dialog { width: 96vw; }
-    .modal .body { grid-template-columns: 1.15fr 1fr; }
-    .m-media { min-height: clamp(340px, 58vh, 700px); }
+    .modal .body { grid-template-columns: 1.2fr 1fr; }
+    .m-media { min-height: clamp(380px, 60vh, 760px); }
   }
 </style>
-
-<div class="m-nav" id="modal-nav" style="display:none;">
-  <button aria-label="Previous" data-dir="-1" type="button">&lsaquo;</button>
-  <button aria-label="Next" data-dir="1" type="button">&rsaquo;</button>
-</div>
-
 <div class="catalog-toolbar"><input id="search" placeholder="Search inventory…" type="search" /></div>
-<div aria-live="polite" class="catalog-container" id="catalog"></div>
+
+<div aria-live="polite" class="catalog-container" id="catalog">&nbsp;</div>
+
 <div class="empty" id="empty" style="display:none;">No items match your search.</div>
+<!-- Modal -->
 
 <div aria-hidden="true" class="modal" id="item-modal">
-  <div aria-labelledby="modal-title" aria-modal="true" class="dialog" role="dialog">
-    <div class="header">
-      <h2 id="modal-title"></h2>
-      <button aria-label="Close" class="close" type="button">✕</button>
-    </div>
-    <div class="body">
-      <div class="m-media">
-        <div class="m-rail" id="modal-rail"></div>
-        <div class="m-nav" id="modal-nav" style="display:none;">
-          <button aria-label="Previous" data-dir="-1" type="button">&lsaquo;</button>
-          <button aria-label="Next" data-dir="1" type="button">&rsaquo;</button>
-        </div>
-      </div>
-      <div class="m-info">
-        <div class="meta" id="modal-meta"></div>
-        <div class="specs" id="modal-specs"></div>
-        <div class="desc" id="modal-desc"></div>
-        <div class="price" id="modal-price"></div>
-        <div class="btn-row">
-          <a class="btn" href="#" id="modal-view" rel="noopener" style="display:none;" target="_blank">View Item</a>
-          <a class="btn" href="https://goldeneaglelive.auctiontechs.com/auction-detail/175375014368881a7f285f0" id="modal-bid" rel="noopener" target="_blank">BID NOW</a>
-        </div>
-      </div>
-    </div>
-  </div>
+<div aria-labelledby="modal-title" aria-modal="true" class="dialog" role="dialog">
+<div class="header">
+<h2 id="modal-title">&nbsp;</h2>
+<button aria-label="Close" class="close" type="button">✕</button></div>
+
+<div class="body">
+<div class="m-media">
+<div class="m-rail" id="modal-rail">&nbsp;</div>
+
+<div class="m-nav" id="modal-nav" style="display:none;"><button aria-label="Previous" data-dir="-1" type="button">&lsaquo;</button><button aria-label="Next" data-dir="1" type="button">&rsaquo;</button></div>
 </div>
 
+<div class="m-info">
+<div class="meta" id="modal-meta">&nbsp;</div>
+
+<div class="specs" id="modal-specs">&nbsp;</div>
+
+<div class="desc" id="modal-desc">&nbsp;</div>
+
+<div class="price" id="modal-price">&nbsp;</div>
+
+<div class="btn-row"><a class="btn" href="#" id="modal-view" rel="noopener" style="display:none;" target="_blank">View Item</a> <a class="btn" href="https://goldeneaglelive.auctiontechs.com/auction-detail/175375014368881a7f285f0" id="modal-bid" rel="noopener" target="_blank">BID NOW</a></div>
+</div>
+</div>
+</div>
+</div>
 <script>
   const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSqwYC-Zr3U5qIJ7RdI3IYuxIMj1OHIXmxDiVb3ZFiYgS9SHiyIL1ivSraBg6Jq8GXHB3jYbDfUBVtC/pub?gid=1771094712&single=true&output=csv";
   const AUCTION_BID_URL = "https://goldeneaglelive.auctiontechs.com/auction-detail/175375014368881a7f285f0";
   const COLS = { title:"Title", image:"ImageURL", desc:"Description", link:"LinkURL", price:"Price", caliber:"Caliber", barrel:"Barrel", condition:"Condition" };
 
+  /* CSV parser */
   function parseCSV(text){
     const rows=[]; let i=0,field="",row=[],inQuotes=false;
     while(i<text.length){
@@ -182,12 +151,15 @@
     return rows
   }
 
-  const esc  = s => String(s??"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  const eattr = s => String(s??"").replace(/"/g,"&quot;");
+  /* Escape helpers */
+  const esc  = s => String(s||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39'}[m]));
+  const eattr = s => String(s||"").replace(/"/g,"&quot;");
 
+  /* Drive -> direct image */
   function toImageUrl(token){
     if (!token) return "";
     const t = String(token).trim();
+
     if (/^https?:\/\//i.test(t)){
       if (/(?:\/folders\/)/i.test(t)) return t;
       let id = null;
@@ -200,6 +172,7 @@
     return `https://drive.google.com/thumbnail?id=${encodeURIComponent(t)}&sz=w1600`;
   }
 
+  /* Pull ALL images by header pattern + multi-value cells */
   function imagesFromRow(r){
     const out = new Set();
     const pushToken = (tok) => {
@@ -212,13 +185,15 @@
     for (const [key, val] of Object.entries(r)){
       if (!val) continue;
       const k = String(key).trim();
-      if (/^(image(url)?\d*|driveid\d*|images?)$/i.test(k)) {
+      if (/^(image(url)?\d*|driveid\d*)$/i.test(k)) {
         pushToken(val);
       }
     }
+    if (r["Images"]) pushToken(r["Images"]);
     return Array.from(out);
   }
 
+  /* Optional specs parsing */
   const SPEC_FIELDS = [
     {key:"UPC", label:"UPC"},
     {key:"SerialNumber", label:"Serial Number"},
@@ -267,20 +242,15 @@
         $modalView=document.getElementById("modal-view"),
         $modalBid=document.getElementById("modal-bid"),
         $modalRail=document.getElementById("modal-rail"),
-        $modalNav=document.querySelector("#item-modal .m-nav");
+        $modalNav=document.getElementById("modal-nav");
 
   let ITEMS=[];
-  let INDEX = new WeakMap();
+  let INDEX = new WeakMap();   // <-- stable map from object -> index
 
   function rebuildIndex(){
     INDEX = new WeakMap();
     ITEMS.forEach((obj, idx) => INDEX.set(obj, idx));
   }
-
-  const getAny = (obj, keys) => {
-    for (const k of keys) { const v = obj[k]; if (v) return v; }
-    return "";
-  };
 
   function render(list){
     $catalog.innerHTML="";
@@ -294,6 +264,7 @@
       card.setAttribute("role","button");
       card.setAttribute("tabindex","0");
 
+      // Use stable index map; fall back to -1 if unknown
       const idx = INDEX.has(it) ? INDEX.get(it) : -1;
       card.dataset.idx = String(idx);
 
@@ -309,12 +280,8 @@
         thumbHtml = `<div class="thumb"></div>`;
       }
 
-      const metaCaliber = getAny(it, [COLS.caliber, "Caliber"]);
-      const metaBarrel  = getAny(it, [COLS.barrel, "Barrel", "BarrelLength", "Barrel Length"]);
-      const metaCond    = getAny(it, [COLS.condition, "Condition"]);
-
       const buttons = `<div class="btn-row">${
-        it["LinkURL"]?`<a class="btn" href="${eattr(it["LinkURL"])}" target="_blank" rel="noopener">View Item</a>`:""
+        it[COLS.link]?`<a class="btn" href="${eattr(it[COLS.link])}" target="_blank" rel="noopener">View Item</a>`:""
       }<a class="btn" href="${AUCTION_BID_URL}" target="_blank" rel="noopener">BID NOW</a></div>`;
 
       card.innerHTML = `
@@ -322,12 +289,12 @@
         <div class="pad">
           <h3>${esc(it[COLS.title]||"")}</h3>
           <div class="meta">
-            ${metaCaliber?`Caliber: ${esc(metaCaliber)} &nbsp;`:""}
-            ${metaBarrel?`Barrel: ${esc(metaBarrel)} &nbsp;`:""}
-            ${metaCond?`Condition: ${esc(metaCond)}`:""}
+            ${it[COLS.caliber]?`Caliber: ${esc(it[COLS.caliber])} &nbsp;`:""}
+            ${it[COLS.barrel]?`Barrel: ${esc(it[COLS.barrel])} &nbsp;`:""}
+            ${it[COLS.condition]?`Condition: ${esc(it[COLS.condition])}`:""}
           </div>
           ${it[COLS.desc]?`<div class="desc-snippet">${esc(it[COLS.desc])}</div>`:""}
-          ${it[COLS.price]?`<div class="price">$${esc(String(it[COLS.price]).replace(/^\$/, ""))}</div>`:""}
+          ${it[COLS.price]?`<div class="price">$${esc(String(it[COLS.price]))}</div>`:""}
           ${buttons}
         </div>`;
       frag.appendChild(card);
@@ -335,9 +302,19 @@
     $catalog.appendChild(frag);
   }
 
+  // Open modal on card click (ignore arrow buttons & links)
   $catalog.addEventListener("click", (e)=>{
     if (e.target.closest(".thumb .nav button")) return;
     if (e.target.closest("a")) return;
+    const card = e.target.closest(".catalog-item");
+    if (!card) return;
+    const idx = parseInt(card.dataset.idx,10);
+    if (Number.isNaN(idx) || idx < 0) return;  // safety
+    openModal(idx);
+  });
+  // Keyboard open (Enter)
+  $catalog.addEventListener("keydown", (e)=>{
+    if (e.key !== "Enter") return;
     const card = e.target.closest(".catalog-item");
     if (!card) return;
     const idx = parseInt(card.dataset.idx,10);
@@ -345,21 +322,18 @@
     openModal(idx);
   });
 
+  // Card slider arrows
   $catalog.addEventListener("click", (e)=>{
-    const btn = e.target.closest(".thumb .nav button");
-    if (!btn) return;
-    e.preventDefault(); e.stopPropagation();
-    const thumb = btn.closest(".thumb");
-    const rail = thumb ? thumb.querySelector(".rail") : null;
-    if (!rail) return;
-    const dir = btn.classList.contains("next") ? 1 : -1;
-    rail.scrollBy({ left: dir * rail.clientWidth, behavior: "smooth" });
+    const prev = e.target.closest(".thumb .prev");
+    const next = e.target.closest(".thumb .next");
+    if (!prev && !next) return;
+    const rail = e.target.closest(".thumb").querySelector(".rail");
+    rail.scrollBy({ left: (next ? 1 : -1) * rail.clientWidth, behavior: "smooth" });
   });
 
+  // ----------------- Modal logic (pinch zoom + drag pan) -----------------
   let scale=1, minScale=1, maxScale=4, tx=0, ty=0;
   let currentImg=null, currentWrap=null;
-  let modalIndex=0;
-
 
   function setTransform(){
     if (!currentImg) return;
@@ -394,33 +368,31 @@
 
   function openModal(idx){
     const r = ITEMS[idx];
-    if (!r) return;
+    if (!r) return; // safety
 
     $modalTitle.textContent = r[COLS.title] || "Item details";
 
-    const metaCaliber = getAny(r, [COLS.caliber, "Caliber"]);
-    const metaBarrel  = getAny(r, [COLS.barrel, "Barrel", "BarrelLength", "Barrel Length"]);
-    const metaCond    = getAny(r, [COLS.condition, "Condition"]);
     const parts=[];
-    if (metaCaliber) parts.push(`Caliber: ${esc(metaCaliber)}`);
-    if (metaBarrel)  parts.push(`Barrel: ${esc(metaBarrel)}`);
-    if (metaCond)    parts.push(`Condition: ${esc(metaCond)}`);
+    if (r[COLS.caliber]) parts.push(`Caliber: ${esc(r[COLS.caliber])}`);
+    if (r[COLS.barrel])  parts.push(`Barrel: ${esc(r[COLS.barrel])}`);
+    if (r[COLS.condition]) parts.push(`Condition: ${esc(r[COLS.condition])}`);
     $modalMeta.innerHTML = parts.join(" &nbsp; ");
 
     const parsedPairs = parsePairs(r[COLS.desc]);
-    $modalSpecs.innerHTML = buildSpecs(r, parsedPairs);
+    const specsHTML = buildSpecs(r, parsedPairs);
+    $modalSpecs.innerHTML = specsHTML;
 
     $modalDesc.textContent = r[COLS.desc] || "";
-    $modalPrice.textContent = r[COLS.price] ? ("$" + String(r[COLS.price]).replace(/^\$/, "")) : "";
+    $modalPrice.textContent = r[COLS.price] ? ("$" + String(r[COLS.price])) : "";
 
-    if (r["LinkURL"]){ $modalView.style.display=""; $modalView.href = r["LinkURL"]; }
+    if (r[COLS.link]){ $modalView.style.display=""; $modalView.href = r[COLS.link]; }
     else { $modalView.style.display="none"; $modalView.removeAttribute("href"); }
     $modalBid.href = AUCTION_BID_URL;
 
     const imgs = imagesFromRow(r);
     buildModalSlides(imgs, r[COLS.title]);
 
-    $modalRail.style.transform="translateX(0%)";modalIndex=0;
+    $modal.classList.add("open");
     $modal.setAttribute("aria-hidden","false");
     $modalRail.scrollLeft = 0;
     attachSlideRefs(0);
@@ -432,18 +404,32 @@
   }
 
   document.querySelector("#item-modal .close").addEventListener("click", closeModal);
-  $modalNav.addEventListener("click",(e)=>{const btn=e.target.closest("button[data-dir]");if(!btn)return;e.preventDefault();e.stopPropagation();const n=$modalRail.children.length;modalIndex+=parseInt(btn.getAttribute("data-dir"),10);if(modalIndex<0)modalIndex=n-1;if(modalIndex>=n)modalIndex=0;$modalRail.style.transform="translateX("+(-modalIndex*100)+"%)";attachSlideRefs(modalIndex);});
+  $modal.addEventListener("click", (e)=>{ if (e.target === $modal) closeModal(); });
+  document.addEventListener("keydown", (e)=>{ if (e.key === "Escape") closeModal(); });
 
-  $modalNav.addEventListener("click",(e)=>{const btn=e.target.closest("button[data-dir]");if(!btn)return;e.preventDefault();e.stopPropagation();$modalRail.scrollBy({left:parseInt(btn.getAttribute("data-dir"),10)*$modalRail.clientWidth,behavior:"smooth"});});
+  // Modal arrows
+  $modalNav.addEventListener("click", (e)=>{
+    const btn = e.target.closest("button[data-dir]"); if (!btn) return;
+    $modalRail.scrollBy({ left: parseInt(btn.getAttribute("data-dir"),10) * $modalRail.clientWidth, behavior: "smooth" });
+  });
 
+  // Track current slide on scroll end
+  let scrollTimer=null;
+  $modalRail.addEventListener("scroll", ()=>{
+    clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(()=>{
+      const idx = Math.round($modalRail.scrollLeft / $modalRail.clientWidth);
+      attachSlideRefs(idx);
+    }, 80);
+  });
 
- 
-
+  // Double-click / double-tap to toggle zoom
   $modalRail.addEventListener("dblclick", ()=>{
     if (!currentWrap) return;
     scale = (scale === 1) ? 2 : 1; tx=0; ty=0; setTransform();
   });
 
+  // Ctrl + wheel zoom (desktop)
   $modalRail.addEventListener("wheel", (e)=>{
     if (!e.ctrlKey) return;
     e.preventDefault();
@@ -453,6 +439,7 @@
     clampPan(); setTransform();
   }, { passive:false });
 
+  // Drag to pan when zoomed
   let dragging=false, startX=0, startY=0, startTx=0, startTy=0;
   function panStart(clientX, clientY){
     if (scale<=1 || !currentWrap) return;
@@ -473,8 +460,9 @@
   window.addEventListener("mousemove", (e)=>{ if (dragging) panMove(e.clientX, e.clientY); });
   window.addEventListener("mouseup", panEnd);
 
+  // Touch pan + pinch zoom
   let pinchStartDist=null, pinchStartScale=1;
-  const distance = (t1,t2)=>Math.hypot(t1.clientX-t2.clientX, t1.clientY-t2.clientY);
+  function distance(t1,t2){ const dx=t1.clientX-t2.clientX, dy=t1.clientY-t2.clientY; return Math.hypot(dx,dy); }
 
   $modalRail.addEventListener("touchstart", (e)=>{
     if (e.touches.length===1){
@@ -504,10 +492,11 @@
 
   $modalRail.addEventListener("touchcancel", ()=>{ dragging=false; pinchStartDist=null; }, {passive:true});
 
+  // ----------------- Search + load -----------------
   $search.addEventListener("input",()=>{
     const q=$search.value.trim().toLowerCase();
     if(!q) return render(ITEMS);
-    const filtered=ITEMS.filter(r=>[r[COLS.title],r[COLS.desc],r[COLS.caliber],r[COLS.condition],r[COLS.barrel],r["Barrel"],r["Barrel Length"]]
+    const filtered=ITEMS.filter(r=>[r[COLS.title],r[COLS.desc],r[COLS.caliber],r[COLS.condition],r[COLS.barrel]]
       .filter(Boolean).join(" ").toLowerCase().includes(q));
     render(filtered)
   });
@@ -520,7 +509,7 @@
       const headers=rows[0];
       const data=rows.slice(1).map(r=>{const o={};headers.forEach((h,i)=>o[h.trim()]=r[i]||"");return o});
       ITEMS=data.filter(r=>(r[COLS.title]||"").trim().length);
-      rebuildIndex();
+      rebuildIndex();    // <-- build the stable index map
       render(ITEMS);
     }catch(e){
       console.error(e);
