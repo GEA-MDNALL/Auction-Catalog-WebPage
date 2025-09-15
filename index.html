@@ -90,9 +90,17 @@
   .m-thumbs button:hover { transform: scale(1.05); }
   .m-thumbs img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .m-thumbs button.is-active { 
-    border-color: #000; 
-    box-shadow: 0 0 0 1px #000 inset;
-  }
+    pointer-events: auto; 
+  border: 0; 
+  background: transparent; 
+  color: #000; 
+  font-size: 22px; 
+  line-height: 1; 
+  width: auto; 
+  height: auto; 
+  border-radius: 0; 
+  padding: 10px 12px; 
+}
 
   /* Specs list */
   .specs { font-size: 14px; line-height: 1.6; margin: 6px 0 10px; }
