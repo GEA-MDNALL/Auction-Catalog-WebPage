@@ -56,6 +56,16 @@
   .m-info .btn-row { margin-top: 14px; }
   #modal-desc { font-size:14px; color:#555; white-space: pre-line; }
 
+/* Modal thumbnail strip */
+.m-thumbs { display: flex; gap: 8px; padding: 8px; overflow-x: auto; border-top: 1px solid #eee; background: #fff; }
+.m-thumbs::-webkit-scrollbar { height: 8px; }
+.m-thumbs button { border: 2px solid transparent; padding: 0; background: transparent; flex: 0 0 auto; width: 64px; height: 64px; border-radius: 8px; overflow: hidden; cursor: pointer; }
+.m-thumbs img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.m-thumbs button.is-active { border-color: #000; }
+@media (max-width: 600px){
+  .m-thumbs { position: sticky; bottom: 0; z-index: 2; background: rgba(255,255,255,.96); backdrop-filter: blur(2px); }
+  .m-thumbs button { width: 56px; height: 56px; }
+}
   /* Specs list (optional) */
   .specs { font-size: 18px; line-height: 1.6; margin: 6px 0 10px; }
   .specs .spec-row { margin: 6px 0; }
@@ -110,6 +120,7 @@
 <div class="m-rail" id="modal-rail">&nbsp;</div>
 
 <div class="m-nav" id="modal-nav" style="display:none;"><button aria-label="Previous" data-dir="-1" type="button">&lsaquo;</button><button aria-label="Next" data-dir="1" type="button">&rsaquo;</button></div>
+<div class="m-thumbs" id="modal-thumbs" role="listbox" aria-label="Select image"></div>
 </div>
 
 <div class="m-info">
@@ -244,6 +255,7 @@
         $modalRail=document.getElementById("modal-rail"),
         $modalNav=document.getElementById("modal-nav");
 
+const $modalThumbs = document.getElementById("modal-thumbs");
   let ITEMS=[];
   let INDEX = new WeakMap();   // <-- stable map from object -> index
 
@@ -365,6 +377,14 @@
     )).join("");
     $modalNav.style.display = imgs.length > 1 ? "" : "none";
   }
+function buildModalThumbs(imgs, title){
+  $modalThumbs.innerHTML = imgs.map((u,i)=>`<button type="button" class="${i===0?'is-active':''}" data-idx="${i}" aria-label="Image ${i+1} of ${imgs.length}" aria-selected="${i===0?'true':'false'}" role="option"><img referrerpolicy="no-referrer" src="${eattr(toImageUrl(u))}" alt="${esc(title||'Thumbnail')}"></button>`).join("");
+  $modalThumbs.style.display = imgs.length > 1 ? "" : "none";
+}
+function updateActiveThumb(idx){
+  const btns = $modalThumbs.querySelectorAll("button[data-idx]");
+  btns.forEach((b,i)=>{ const a = i===idx; b.classList.toggle("is-active", a); b.setAttribute("aria-selected", a ? "true" : "false"); });
+}
 
   function openModal(idx){
     const r = ITEMS[idx];
@@ -391,7 +411,7 @@
 
     const imgs = imagesFromRow(r);
     buildModalSlides(imgs, r[COLS.title]);
-
+buildModalThumbs(imgs, r[COLS.title]);
     $modal.classList.add("open");
     $modal.setAttribute("aria-hidden","false");
     $modalRail.scrollLeft = 0;
@@ -412,6 +432,12 @@
     const btn = e.target.closest("button[data-dir]"); if (!btn) return;
     $modalRail.scrollBy({ left: parseInt(btn.getAttribute("data-dir"),10) * $modalRail.clientWidth, behavior: "smooth" });
   });
+$modalThumbs.addEventListener("click", (e)=>{
+  const btn = e.target.closest("button[data-idx]"); if (!btn) return;
+  const idx = parseInt(btn.getAttribute("data-idx"), 10);
+  $modalRail.scrollTo({ left: idx * $modalRail.clientWidth, behavior: "smooth" });
+  attachSlideRefs(idx); updateActiveThumb(idx);
+});
 
   // Track current slide on scroll end
   let scrollTimer=null;
@@ -420,6 +446,7 @@
     scrollTimer = setTimeout(()=>{
       const idx = Math.round($modalRail.scrollLeft / $modalRail.clientWidth);
       attachSlideRefs(idx);
+updateActiveThumb(idx);
     }, 80);
   });
 
