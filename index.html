@@ -267,7 +267,7 @@
         $modalView=document.getElementById("modal-view"),
         $modalBid=document.getElementById("modal-bid"),
         $modalRail=document.getElementById("modal-rail"),
-        $modalNav=document.getElementById("modal-nav");
+        $modalNav=document.querySelector("#item-modal .m-nav");
 
   let ITEMS=[];
   let INDEX = new WeakMap();
@@ -358,6 +358,8 @@
 
   let scale=1, minScale=1, maxScale=4, tx=0, ty=0;
   let currentImg=null, currentWrap=null;
+  let modalIndex=0;
+
 
   function setTransform(){
     if (!currentImg) return;
@@ -418,7 +420,7 @@
     const imgs = imagesFromRow(r);
     buildModalSlides(imgs, r[COLS.title]);
 
-    $modal.classList.add("open");
+    $modalRail.style.transform="translateX(0%)";modalIndex=0;
     $modal.setAttribute("aria-hidden","false");
     $modalRail.scrollLeft = 0;
     attachSlideRefs(0);
@@ -430,21 +432,12 @@
   }
 
   document.querySelector("#item-modal .close").addEventListener("click", closeModal);
-  $modal.addEventListener("click", (e)=>{ if (e.target === $modal) closeModal(); });
+  $modalNav.addEventListener("click",(e)=>{const btn=e.target.closest("button[data-dir]");if(!btn)return;e.preventDefault();e.stopPropagation();const n=$modalRail.children.length;modalIndex+=parseInt(btn.getAttribute("data-dir"),10);if(modalIndex<0)modalIndex=n-1;if(modalIndex>=n)modalIndex=0;$modalRail.style.transform="translateX("+(-modalIndex*100)+"%)";attachSlideRefs(modalIndex);});
 
   $modalNav.addEventListener("click",(e)=>{const btn=e.target.closest("button[data-dir]");if(!btn)return;e.preventDefault();e.stopPropagation();$modalRail.scrollBy({left:parseInt(btn.getAttribute("data-dir"),10)*$modalRail.clientWidth,behavior:"smooth"});});
 
 
-  document.addEventListener("keydown", (e)=>{ if (e.key === "Escape") closeModal(); });
-
-  let scrollTimer=null;
-  $modalRail.addEventListener("scroll", ()=>{
-    clearTimeout(scrollTimer);
-    scrollTimer = setTimeout(()=>{
-      const idx = Math.round($modalRail.scrollLeft / $modalRail.clientWidth);
-      attachSlideRefs(idx);
-    }, 80);
-  });
+ 
 
   $modalRail.addEventListener("dblclick", ()=>{
     if (!currentWrap) return;
