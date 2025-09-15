@@ -1,6 +1,11 @@
-<meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
-<title></title>
-<style type="text/css">:root { --gap: 20px; --card-radius: 14px; --max: 1200px; }
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Catalog with Fixed Thumbnails</title>
+<style type="text/css">
+  :root { --gap: 20px; --card-radius: 14px; --max: 1200px; }
   body { font-family: Arial, sans-serif; margin: 0; padding: 24px; background: #fafafa; }
   .catalog-toolbar { max-width: var(--max); margin: 0 auto 12px; display: flex; gap: 12px; }
   .catalog-toolbar input[type="search"] { flex: 1 1 280px; padding: 12px 14px; border: 1px solid #ddd; border-radius: 10px; font-size: 16px; }
@@ -14,11 +19,9 @@
   .catalog-item .thumb { width: 100%; aspect-ratio: 4/3; background:#fff; position: relative; overflow: hidden; }
   .thumb .rail { display: flex; height: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; scrollbar-width: none; }
   .thumb .rail::-webkit-scrollbar { display: none; }
-  /* contain so nothing is cropped */
   .thumb .rail img { flex: 0 0 100%; width: 100%; height: 100%; object-fit: contain; background:#fff; scroll-snap-align: center; user-select: none; }
-  /* UPDATED: edge-aligned, vertically centered, no circles */
   .thumb .nav { position: absolute; top: 0; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 0 8px; pointer-events: none; }
-  .thumb .nav button { pointer-events: auto; border: 0; background: transparent; color: #fff; font-size: 18px; line-height: 1; width: auto; height: auto; border-radius: 0; padding: 8px 10px; }
+  .thumb .nav button { pointer-events: auto; border: 0; background: rgba(0,0,0,0.5); color: #fff; font-size: 18px; line-height: 1; width: auto; height: auto; border-radius: 4px; padding: 8px 10px; }
 
   .catalog-item .pad { padding: 14px; display: flex; flex-direction: column; flex: 1; }
   .catalog-item h3 { margin: 6px 0 8px; font-size: 18px; }
@@ -33,99 +36,200 @@
   /* --- Modal (responsive, pinch zoom + drag pan) --- */
   .modal { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; align-items: center; justify-content: center; padding: 28px; z-index: 1000; }
   .modal.open { display: flex; }
-  .modal .dialog { background: #fff; border-radius: 14px; width: min(98vw, 1600px); overflow: hidden; }
-  .modal .header { display:flex; justify-content: space-between; align-items:center; padding: 14px 16px; border-bottom: 1px solid #eee; }
+  .modal .dialog { background: #fff; border-radius: 14px; width: min(98vw, 1600px); max-height: 95vh; overflow: hidden; display: flex; flex-direction: column; }
+  .modal .header { display:flex; justify-content: space-between; align-items:center; padding: 14px 16px; border-bottom: 1px solid #eee; flex-shrink: 0; }
   .modal .header h2 { font-size: 22px; margin: 0; }
   .modal .close { border: 0; background: #000; color:#fff; border-radius: 999px; padding:6px 12px; cursor: pointer; font-weight: 700; }
-  .modal .body { display: grid; grid-template-columns: 1.35fr 1fr; gap: 16px; padding: 16px; }
+  .modal .body { display: grid; grid-template-columns: 1.35fr 1fr; gap: 16px; padding: 16px; overflow: auto; flex: 1; }
 
   /* Pure white image area */
-  .m-media { position: relative; background: #fff; border-radius: 10px; overflow: hidden; min-height: clamp(420px, 62vh, 860px); }
-  .m-rail { display: flex; height: 100%; aspect-ratio: 4/3; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; scrollbar-width: none; background:#fff; }
+  .m-media { position: relative; background: #fff; border-radius: 10px; overflow: hidden; min-height: 400px; height: 60vh; max-height: 600px; display: flex; flex-direction: column; }
+  .m-rail { display: flex; flex: 1; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; scrollbar-width: none; background:#fff; }
   .m-rail::-webkit-scrollbar { display: none; }
   .m-rail .slide { flex: 0 0 100%; height: 100%; position: relative; }
   .zoom-wrap { width: 100%; height: 100%; overflow: hidden; touch-action: none; cursor: grab; }
   .zoom-wrap:active { cursor: grabbing; }
   .zoom-img { width: 100%; height: 100%; object-fit: contain; transform-origin: 50% 50%; will-change: transform; user-drag: none; user-select: none; }
 
-  /* UPDATED: edge-aligned, vertically centered, no circles */
-  .m-nav { position: absolute; top: 0; bottom: calc(0 + env(safe-area-inset-bottom)); left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 0 8px; pointer-events: none; }
-  .m-nav button { pointer-events: auto; border: 0; background: transparent; color: #fff; font-size: 22px; line-height: 1; width: auto; height: auto; border-radius: 0; padding: 10px 12px; }
+  .m-nav { position: absolute; top: 50%; transform: translateY(-50%); left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 0 8px; pointer-events: none; z-index: 10; }
+  .m-nav button { pointer-events: auto; border: 0; background: rgba(0,0,0,0.6); color: #fff; font-size: 22px; line-height: 1; width: auto; height: auto; border-radius: 4px; padding: 10px 12px; }
+  .m-nav button:hover { background: rgba(0,0,0,0.8); }
 
   .m-info .price { margin: 6px 0 14px; font-size: 18px; }
   .m-info .btn-row { margin-top: 14px; }
   #modal-desc { font-size:14px; color:#555; white-space: pre-line; }
 
-  /* Specs list (optional) */
-  .specs { font-size: 18px; line-height: 1.6; margin: 6px 0 10px; }
+  /* Modal thumbnail strip - FIXED */
+  .m-thumbs { 
+    display: flex !important; 
+    gap: 8px; 
+    padding: 8px; 
+    overflow-x: auto; 
+    background: #f5f5f5; 
+    border-top: 1px solid #ddd;
+    flex-shrink: 0;
+    min-height: 80px;
+  }
+  .m-thumbs::-webkit-scrollbar { height: 6px; }
+  .m-thumbs::-webkit-scrollbar-track { background: #f1f1f1; }
+  .m-thumbs::-webkit-scrollbar-thumb { background: #888; border-radius: 3px; }
+  .m-thumbs::-webkit-scrollbar-thumb:hover { background: #555; }
+  
+  .m-thumbs button { 
+    border: 2px solid transparent; 
+    padding: 0; 
+    background: transparent; 
+    flex: 0 0 auto; 
+    width: 64px; 
+    height: 64px; 
+    border-radius: 8px; 
+    overflow: hidden; 
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .m-thumbs button:hover { transform: scale(1.05); }
+  .m-thumbs img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .m-thumbs button.is-active { 
+    border-color: #000; 
+    box-shadow: 0 0 0 1px #000 inset;
+  }
+
+  /* Specs list */
+  .specs { font-size: 14px; line-height: 1.6; margin: 6px 0 10px; }
   .specs .spec-row { margin: 6px 0; }
-  .specs .spec-label { font-weight: 800; }
+  .specs .spec-label { font-weight: 700; }
   .specs .spec-val { font-weight: 400; }
 
-  /* ---------- Mobile: full-bleed image ---------- */
+  /* ---------- Mobile adjustments ---------- */
   @media (max-width: 600px){
     body { padding: 12px; }
     .catalog-container { gap: 14px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
 
     .modal { padding: 0; align-items: stretch; }
-    .modal .dialog { width: 100vw; height: 100vh; border-radius: 0; display: flex; flex-direction: column; }
-    .modal .header { position: sticky; top: 0; z-index: 5; background: #fff; padding: 12px 14px; }
+    .modal .dialog { 
+      width: 100vw; 
+      height: 100vh; 
+      max-height: 100vh;
+      border-radius: 0; 
+      display: flex; 
+      flex-direction: column; 
+    }
+    .modal .header { 
+      position: sticky; 
+      top: 0; 
+      z-index: 15; 
+      background: #fff; 
+      padding: 12px 14px; 
+    }
     .modal .header h2 { font-size: 18px; }
 
-    .modal .body { grid-template-columns: 1fr; gap: 12px; padding: 0; overflow: auto; flex: 1; }
-    .m-media { min-height: 60vh; border-radius: 0; }
-    .m-rail { aspect-ratio: auto; }
-    .m-info { padding: 12px; }
+    .modal .body { 
+      grid-template-columns: 1fr; 
+      gap: 0; 
+      padding: 0; 
+      overflow: auto; 
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .m-media { 
+      min-height: 40vh;
+      height: 50vh;
+      max-height: 50vh;
+      border-radius: 0; 
+      flex-shrink: 0;
+    }
+    
+    .m-thumbs { 
+      position: sticky;
+      bottom: 0;
+      z-index: 10;
+      background: rgba(255,255,255,0.98);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+      min-height: 72px;
+    }
+    .m-thumbs button { width: 56px; height: 56px; }
+    
+    .m-info { 
+      padding: 12px; 
+      flex: 1;
+      overflow: auto;
+    }
 
-    /* UPDATED: remove fixed size since buttons are no longer circular */
-    .m-nav button { width: auto; height: auto; font-size: 20px; }
+    .m-nav button { font-size: 20px; padding: 8px 10px; }
   }
 
   @media (orientation: landscape) and (max-width: 900px){
-    .m-rail { aspect-ratio: 16/9; }
-    .m-media { min-height: 60vh; }
+    .m-media { 
+      min-height: 50vh;
+      height: 55vh;
+      max-height: 400px;
+    }
   }
 
   @media (min-width: 601px) and (max-width: 1000px){
-    .modal .dialog { width: 96vw; }
+    .modal .dialog { width: 96vw; max-height: 90vh; }
     .modal .body { grid-template-columns: 1.2fr 1fr; }
-    .m-media { min-height: clamp(380px, 60vh, 760px); }
+    .m-media { min-height: 400px; height: 55vh; max-height: 500px; }
+  }
+
+  /* Squarespace-specific fixes */
+  .sqs-block-code .modal,
+  .sqs-block-code .modal * {
+    box-sizing: border-box !important;
+  }
+  
+  .sqs-block-code .m-thumbs {
+    visibility: visible !important;
+    opacity: 1 !important;
+    display: flex !important;
   }
 </style>
-<div class="catalog-toolbar"><input id="search" placeholder="Search inventory…" type="search" /></div>
+</head>
+<body>
+
+<div class="catalog-toolbar">
+  <input id="search" placeholder="Search inventory…" type="search" />
+</div>
 
 <div aria-live="polite" class="catalog-container" id="catalog">&nbsp;</div>
 
 <div class="empty" id="empty" style="display:none;">No items match your search.</div>
+
 <!-- Modal -->
-
 <div aria-hidden="true" class="modal" id="item-modal">
-<div aria-labelledby="modal-title" aria-modal="true" class="dialog" role="dialog">
-<div class="header">
-<h2 id="modal-title">&nbsp;</h2>
-<button aria-label="Close" class="close" type="button">✕</button></div>
+  <div aria-labelledby="modal-title" aria-modal="true" class="dialog" role="dialog">
+    <div class="header">
+      <h2 id="modal-title">&nbsp;</h2>
+      <button aria-label="Close" class="close" type="button">✕</button>
+    </div>
 
-<div class="body">
-<div class="m-media">
-<div class="m-rail" id="modal-rail">&nbsp;</div>
+    <div class="body">
+      <div class="m-media">
+        <div class="m-rail" id="modal-rail">&nbsp;</div>
+        <div class="m-nav" id="modal-nav" style="display:none;">
+          <button aria-label="Previous" data-dir="-1" type="button">‹</button>
+          <button aria-label="Next" data-dir="1" type="button">›</button>
+        </div>
+        <div class="m-thumbs" id="modal-thumbs" role="listbox" aria-label="Select image"></div>
+      </div>
 
-<div class="m-nav" id="modal-nav" style="display:none;"><button aria-label="Previous" data-dir="-1" type="button">&lsaquo;</button><button aria-label="Next" data-dir="1" type="button">&rsaquo;</button></div>
+      <div class="m-info">
+        <div class="meta" id="modal-meta">&nbsp;</div>
+        <div class="specs" id="modal-specs">&nbsp;</div>
+        <div class="desc" id="modal-desc">&nbsp;</div>
+        <div class="price" id="modal-price">&nbsp;</div>
+        <div class="btn-row">
+          <a class="btn" href="#" id="modal-view" rel="noopener" style="display:none;" target="_blank">View Item</a>
+          <a class="btn" href="https://goldeneaglelive.auctiontechs.com/auction-detail/175375014368881a7f285f0" id="modal-bid" rel="noopener" target="_blank">BID NOW</a>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
-<div class="m-info">
-<div class="meta" id="modal-meta">&nbsp;</div>
-
-<div class="specs" id="modal-specs">&nbsp;</div>
-
-<div class="desc" id="modal-desc">&nbsp;</div>
-
-<div class="price" id="modal-price">&nbsp;</div>
-
-<div class="btn-row"><a class="btn" href="#" id="modal-view" rel="noopener" style="display:none;" target="_blank">View Item</a> <a class="btn" href="https://goldeneaglelive.auctiontechs.com/auction-detail/175375014368881a7f285f0" id="modal-bid" rel="noopener" target="_blank">BID NOW</a></div>
-</div>
-</div>
-</div>
-</div>
 <script>
   const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSqwYC-Zr3U5qIJ7RdI3IYuxIMj1OHIXmxDiVb3ZFiYgS9SHiyIL1ivSraBg6Jq8GXHB3jYbDfUBVtC/pub?gid=1771094712&single=true&output=csv";
   const AUCTION_BID_URL = "https://goldeneaglelive.auctiontechs.com/auction-detail/175375014368881a7f285f0";
@@ -152,7 +256,7 @@
   }
 
   /* Escape helpers */
-  const esc  = s => String(s||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39'}[m]));
+  const esc  = s => String(s||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const eattr = s => String(s||"").replace(/"/g,"&quot;");
 
   /* Drive -> direct image */
@@ -205,6 +309,7 @@
     {key:"Classification", label:"Classification"},
     {key:"Features", label:"Features"},
   ];
+  
   function parsePairs(desc){
     if(!desc) return {};
     const out={};
@@ -218,6 +323,7 @@
     });
     return out;
   }
+  
   function buildSpecs(row, parsed){
     const rows=[];
     for(const f of SPEC_FIELDS){
@@ -242,10 +348,11 @@
         $modalView=document.getElementById("modal-view"),
         $modalBid=document.getElementById("modal-bid"),
         $modalRail=document.getElementById("modal-rail"),
-        $modalNav=document.getElementById("modal-nav");
+        $modalNav=document.getElementById("modal-nav"),
+        $modalThumbs = document.getElementById("modal-thumbs");
 
   let ITEMS=[];
-  let INDEX = new WeakMap();   // <-- stable map from object -> index
+  let INDEX = new WeakMap();
 
   function rebuildIndex(){
     INDEX = new WeakMap();
@@ -264,7 +371,6 @@
       card.setAttribute("role","button");
       card.setAttribute("tabindex","0");
 
-      // Use stable index map; fall back to -1 if unknown
       const idx = INDEX.has(it) ? INDEX.get(it) : -1;
       card.dataset.idx = String(idx);
 
@@ -302,17 +408,18 @@
     $catalog.appendChild(frag);
   }
 
-  // Open modal on card click (ignore arrow buttons & links)
+  // Open modal on card click
   $catalog.addEventListener("click", (e)=>{
     if (e.target.closest(".thumb .nav button")) return;
     if (e.target.closest("a")) return;
     const card = e.target.closest(".catalog-item");
     if (!card) return;
     const idx = parseInt(card.dataset.idx,10);
-    if (Number.isNaN(idx) || idx < 0) return;  // safety
+    if (Number.isNaN(idx) || idx < 0) return;
     openModal(idx);
   });
-  // Keyboard open (Enter)
+  
+  // Keyboard open
   $catalog.addEventListener("keydown", (e)=>{
     if (e.key !== "Enter") return;
     const card = e.target.closest(".catalog-item");
@@ -331,7 +438,7 @@
     rail.scrollBy({ left: (next ? 1 : -1) * rail.clientWidth, behavior: "smooth" });
   });
 
-  // ----------------- Modal logic (pinch zoom + drag pan) -----------------
+  // Modal logic
   let scale=1, minScale=1, maxScale=4, tx=0, ty=0;
   let currentImg=null, currentWrap=null;
 
@@ -355,6 +462,7 @@
     currentImg  = slide.querySelector(".zoom-img");
     resetZoom();
   }
+  
   function buildModalSlides(imgs, title){
     $modalRail.innerHTML = imgs.map(u=>(
       `<div class="slide">
@@ -365,18 +473,42 @@
     )).join("");
     $modalNav.style.display = imgs.length > 1 ? "" : "none";
   }
+  
+  function buildModalThumbs(imgs, title){
+    if (imgs.length <= 1) {
+      $modalThumbs.innerHTML = "";
+      $modalThumbs.style.display = "none";
+      return;
+    }
+    
+    $modalThumbs.innerHTML = imgs.map((u,i)=>
+      `<button type="button" class="${i===0?'is-active':''}" data-idx="${i}" aria-label="Image ${i+1} of ${imgs.length}" aria-selected="${i===0?'true':'false'}" role="option">
+        <img referrerpolicy="no-referrer" src="${eattr(toImageUrl(u))}" alt="${esc(title||'Thumbnail')}">
+      </button>`
+    ).join("");
+    $modalThumbs.style.display = "flex";
+  }
+  
+  function updateActiveThumb(idx){
+    const btns = $modalThumbs.querySelectorAll("button[data-idx]");
+    btns.forEach((b,i)=>{ 
+      const a = i===idx; 
+      b.classList.toggle("is-active", a); 
+      b.setAttribute("aria-selected", a ? "true" : "false"); 
+    });
+  }
 
   function openModal(idx){
     const r = ITEMS[idx];
-    if (!r) return; // safety
+    if (!r) return;
 
     $modalTitle.textContent = r[COLS.title] || "Item details";
 
     const parts=[];
-    if (r[COLS.caliber]) parts.push(`Caliber: ${esc(r[COLS.caliber])}`);
-    if (r[COLS.barrel])  parts.push(`Barrel: ${esc(r[COLS.barrel])}`);
-    if (r[COLS.condition]) parts.push(`Condition: ${esc(r[COLS.condition])}`);
-    $modalMeta.innerHTML = parts.join(" &nbsp; ");
+    if (r[COLS.caliber]) parts.push(`Caliber: ${r[COLS.caliber]}`);
+    if (r[COLS.barrel])  parts.push(`Barrel: ${r[COLS.barrel]}`);
+    if (r[COLS.condition]) parts.push(`Condition: ${r[COLS.condition]}`);
+    $modalMeta.innerHTML = parts.map(p => esc(p)).join(" &nbsp; ");
 
     const parsedPairs = parsePairs(r[COLS.desc]);
     const specsHTML = buildSpecs(r, parsedPairs);
@@ -385,13 +517,19 @@
     $modalDesc.textContent = r[COLS.desc] || "";
     $modalPrice.textContent = r[COLS.price] ? ("$" + String(r[COLS.price])) : "";
 
-    if (r[COLS.link]){ $modalView.style.display=""; $modalView.href = r[COLS.link]; }
-    else { $modalView.style.display="none"; $modalView.removeAttribute("href"); }
+    if (r[COLS.link]){ 
+      $modalView.style.display=""; 
+      $modalView.href = r[COLS.link]; 
+    } else { 
+      $modalView.style.display="none"; 
+      $modalView.removeAttribute("href"); 
+    }
     $modalBid.href = AUCTION_BID_URL;
 
     const imgs = imagesFromRow(r);
     buildModalSlides(imgs, r[COLS.title]);
-
+    buildModalThumbs(imgs, r[COLS.title]);
+    
     $modal.classList.add("open");
     $modal.setAttribute("aria-hidden","false");
     $modalRail.scrollLeft = 0;
@@ -409,8 +547,19 @@
 
   // Modal arrows
   $modalNav.addEventListener("click", (e)=>{
-    const btn = e.target.closest("button[data-dir]"); if (!btn) return;
+    const btn = e.target.closest("button[data-dir]"); 
+    if (!btn) return;
     $modalRail.scrollBy({ left: parseInt(btn.getAttribute("data-dir"),10) * $modalRail.clientWidth, behavior: "smooth" });
+  });
+  
+  // Thumbnail clicks
+  $modalThumbs.addEventListener("click", (e)=>{
+    const btn = e.target.closest("button[data-idx]"); 
+    if (!btn) return;
+    const idx = parseInt(btn.getAttribute("data-idx"), 10);
+    $modalRail.scrollTo({ left: idx * $modalRail.clientWidth, behavior: "smooth" });
+    attachSlideRefs(idx); 
+    updateActiveThumb(idx);
   });
 
   // Track current slide on scroll end
@@ -420,6 +569,7 @@
     scrollTimer = setTimeout(()=>{
       const idx = Math.round($modalRail.scrollLeft / $modalRail.clientWidth);
       attachSlideRefs(idx);
+      updateActiveThumb(idx);
     }, 80);
   });
 
@@ -492,7 +642,7 @@
 
   $modalRail.addEventListener("touchcancel", ()=>{ dragging=false; pinchStartDist=null; }, {passive:true});
 
-  // ----------------- Search + load -----------------
+  // Search functionality
   $search.addEventListener("input",()=>{
     const q=$search.value.trim().toLowerCase();
     if(!q) return render(ITEMS);
@@ -501,6 +651,7 @@
     render(filtered)
   });
 
+  // Load data
   (async function(){
     try{
       const res=await fetch(SHEET_CSV_URL,{cache:"no-store"});
@@ -509,7 +660,7 @@
       const headers=rows[0];
       const data=rows.slice(1).map(r=>{const o={};headers.forEach((h,i)=>o[h.trim()]=r[i]||"");return o});
       ITEMS=data.filter(r=>(r[COLS.title]||"").trim().length);
-      rebuildIndex();    // <-- build the stable index map
+      rebuildIndex();
       render(ITEMS);
     }catch(e){
       console.error(e);
@@ -517,3 +668,6 @@
     }
   })();
 </script>
+
+</body>
+</html>
