@@ -352,6 +352,54 @@
       font-size: 13px;
       min-width: 35px;
     }
+
+.modal .body {
+    padding-bottom: 0;
+  }
+  
+  .m-info {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 80px; /* Space for fixed buttons */
+  }
+  
+  /* Fixed button bar */
+  .m-info .btn-row {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, white 90%, rgba(255,255,255,0.9));
+    padding: 12px;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+    z-index: 100;
+    margin: 0;
+    display: flex;
+    gap: 10px;
+    backdrop-filter: blur(10px);
+  }
+  
+  /* Larger, more touchable buttons */
+  .m-info .btn-row .btn {
+    flex: 1;
+    padding: 14px 20px;
+    font-size: 16px;
+    font-weight: 700;
+    border-radius: 12px;
+    text-align: center;
+    min-height: 48px; /* Minimum touch target size */
+  }
+  
+  /* Make BID NOW more prominent */
+  #modal-bid {
+    background: #ff4444; /* Red to stand out */
+    color: white;
+  }
+  
+  #modal-bid:active {
+    background: #cc0000;
+    transform: scale(0.98);
+  }
   }
 
   @media (orientation: landscape) and (max-width: 900px){
