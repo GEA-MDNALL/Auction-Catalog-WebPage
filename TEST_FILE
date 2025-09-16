@@ -423,6 +423,7 @@
       </div>
 
       <div class="m-info">
+        <h2 id="modal-body-title" style="font-size: 22px; margin: 0 0 12px 0;"></h2>
         <div class="meta" id="modal-meta">&nbsp;</div>
         <div class="specs" id="modal-specs">&nbsp;</div>
         <div class="desc" id="modal-desc">&nbsp;</div>
@@ -902,12 +903,17 @@
   function openModal(idx){
     const r = ITEMS[idx];
     if (!r) return;
-    
+  
     currentModalIndex = idx; // Store current index
     window.currentModalIndex = idx; // Make it globally accessible
     updateModalNavigation(); // Update prev/next buttons
 
-    $modalTitle.textContent = r[COLS.title] || "Item details";
+    $modalTitle.textContent = "Item details";
+
+    const $modalBodyTitle = document.getElementById("modal-body-title");
+     if ($modalBodyTitle) {
+    $modalBodyTitle.textContent = r[COLS.title] || "Item details";
+  }
 
     const parts=[];
 // Remove or comment out the caliber/gauge and condition lines
