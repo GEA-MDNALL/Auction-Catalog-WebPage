@@ -439,7 +439,7 @@
 <script>
   const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSqwYC-Zr3U5qIJ7RdI3IYuxIMj1OHIXmxDiVb3ZFiYgS9SHiyIL1ivSraBg6Jq8GXHB3jYbDfUBVtC/pub?gid=1771094712&single=true&output=csv";
   const AUCTION_BID_URL = "https://goldeneaglelive.auctiontechs.com/auction-detail/175375014368881a7f285f0";
-  const COLS = { title:"Title", image:"ImageURL", desc:"Description", link:"LinkURL", price:"Price", caliber:"Caliber", barrel:"Barrel", condition:"Condition" };
+  const COLS = { title:"Title", image:"ImageURL", desc:"Description", link:"LinkURL", price:"Price", caliber:"Caliber", barrel:"Barrel", condition:"Condition", caliberGauge:"Caliber/Gauge" };
   const ITEMS_PER_PAGE = 50;
 
   /* CSV parser */
@@ -541,6 +541,7 @@
     {key:"SerialNumber", label:"Serial Number"},
     {key:"Model", label:"Model"},
     {key:"Caliber", label:"Caliber"},
+    {key:"Caliber/Gauge", label:"Caliber/Gauge"},
     {key:"BarrelLength", label:"Barrel Length"},
     {key:"Condition", label:"Condition"},
     {key:"ConditionGrade", label:"Condition Grade"},
@@ -910,6 +911,7 @@
 
     const parts=[];
     if (r[COLS.caliber]) parts.push(`Caliber: ${r[COLS.caliber]}`);
+    if (r[COLS.caliberGauge]) parts.push(`Caliber/Gauge: ${r[COLS.caliberGauge]}`);
     if (r[COLS.barrel])  parts.push(`Barrel: ${r[COLS.barrel]}`);
     if (r[COLS.condition]) parts.push(`Condition: ${r[COLS.condition]}`);
     $modalMeta.innerHTML = parts.map(p => esc(p)).join(" &nbsp; ");
@@ -1149,7 +1151,7 @@
   $search.addEventListener("input",()=>{
     const q=$search.value.trim().toLowerCase();
     if(!q) return render(ITEMS);
-    const filtered=ITEMS.filter(r=>[r[COLS.title],r[COLS.desc],r[COLS.caliber],r[COLS.condition],r[COLS.barrel]]
+    const filtered=ITEMS.filter(r=>[r[COLS.title],r[COLS.desc],r[COLS.caliber],r[COLS.caliberGauge],r[COLS.condition],r[COLS.barrel]]
       .filter(Boolean).join(" ").toLowerCase().includes(q));
     render(filtered)
   });
