@@ -3,12 +3,58 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Catalog with Fixed Thumbnails</title>
+<title>Catalog with Pagination</title>
 <style type="text/css">
   :root { --gap: 20px; --card-radius: 14px; --max: 1200px; }
   body { font-family: Arial, sans-serif; margin: 0; padding: 24px; background: #fafafa; }
-  .catalog-toolbar { max-width: var(--max); margin: 0 auto 12px; display: flex; gap: 12px; }
+  .catalog-toolbar { max-width: var(--max); margin: 0 auto 12px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
   .catalog-toolbar input[type="search"] { flex: 1 1 280px; padding: 12px 14px; border: 1px solid #ddd; border-radius: 10px; font-size: 16px; }
+
+  /* Pagination controls */
+  .pagination {
+    max-width: var(--max);
+    margin: 20px auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .pagination button {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    background: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    min-width: 40px;
+  }
+  .pagination button:hover:not(:disabled) {
+    background: #f5f5f5;
+    border-color: #999;
+  }
+  .pagination button.active {
+    background: #000;
+    color: #fff;
+    border-color: #000;
+  }
+  .pagination button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .pagination .page-info {
+    padding: 0 12px;
+    font-size: 14px;
+    color: #666;
+  }
+  .items-info {
+    max-width: var(--max);
+    margin: 10px auto;
+    text-align: center;
+    font-size: 14px;
+    color: #666;
+  }
 
   .catalog-container { max-width: var(--max); margin: 0 auto; display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
   .catalog-item { background: #fff; border: 1px solid #e9e9e9; border-radius: var(--card-radius); overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,.06); transition: transform .2s ease; display: flex; flex-direction: column; }
@@ -75,12 +121,63 @@
   .empty { max-width: var(--max); margin: 30px auto; color:#666; text-align:center; }
 
   /* --- Modal (responsive, pinch zoom + drag pan) --- */
-  .modal { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; align-items: center; justify-content: center; padding: 28px; z-index: 1000; }
+  .modal { 
+    position: fixed; 
+    inset: 0; 
+    background: rgba(0,0,0,.5); 
+    display: none; 
+    align-items: center; 
+    justify-content: center; 
+    padding: 28px; 
+    z-index: 1000;
+  }
   .modal.open { display: flex; }
-  .modal .dialog { background: #fff; border-radius: 14px; width: min(98vw, 1600px); max-height: 95vh; overflow: hidden; display: flex; flex-direction: column; }
-  .modal .header { display:flex; justify-content: space-between; align-items:center; padding: 14px 16px; border-bottom: 1px solid #eee; flex-shrink: 0; }
-  .modal .header h2 { font-size: 22px; margin: 0; }
-  .modal .close { border: 0; background: #000; color:#fff; border-radius: 999px; padding:6px 12px; cursor: pointer; font-weight: 700; }
+  .modal .dialog { 
+    background: #fff; 
+    border-radius: 14px; 
+    width: min(98vw, 1600px); 
+    max-height: 95vh; 
+    overflow: hidden; 
+    display: flex; 
+    flex-direction: column;
+    position: relative;
+  }
+  .modal .header { 
+    display:flex; 
+    justify-content: space-between; 
+    align-items:center; 
+    padding: 14px 16px; 
+    border-bottom: 1px solid #eee; 
+    flex-shrink: 0;
+    gap: 12px;
+    position: relative;
+    background: #fff;
+  }
+  .modal .header h2 { 
+    font-size: 22px; 
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+  }
+  .modal .close { 
+    border: 0; 
+    background: #000; 
+    color:#fff; 
+    border-radius: 999px; 
+    padding:6px 12px; 
+    cursor: pointer; 
+    font-weight: 700;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10;
+    pointer-events: all;
+  }
+  .modal .close:hover {
+    background: #333;
+  }
   .modal .body { display: grid; grid-template-columns: 1.35fr 1fr; gap: 16px; padding: 16px; overflow: auto; flex: 1; }
 
   /* Pure white image area */
@@ -171,9 +268,9 @@
       flex-direction: column; 
     }
     .modal .header { 
-      position: sticky; 
-      top: 0; 
-      z-index: 15; 
+      position: relative;
+      top: auto;
+      z-index: 1;
       background: #fff; 
       padding: 12px 14px; 
     }
@@ -213,6 +310,12 @@
       flex: 1;
       overflow: auto;
     }
+    
+    .pagination button {
+      padding: 6px 10px;
+      font-size: 13px;
+      min-width: 35px;
+    }
   }
 
   @media (orientation: landscape) and (max-width: 900px){
@@ -248,16 +351,24 @@
   <input id="search" placeholder="Search inventory…" type="search" />
 </div>
 
+<!-- Top pagination -->
+<div class="pagination" id="pagination-top"></div>
+<div class="items-info" id="items-info-top"></div>
+
 <div aria-live="polite" class="catalog-container" id="catalog">&nbsp;</div>
 
 <div class="empty" id="empty" style="display:none;">No items match your search.</div>
+
+<!-- Bottom pagination -->
+<div class="items-info" id="items-info-bottom"></div>
+<div class="pagination" id="pagination-bottom"></div>
 
 <!-- Modal -->
 <div aria-hidden="true" class="modal" id="item-modal">
   <div aria-labelledby="modal-title" aria-modal="true" class="dialog" role="dialog">
     <div class="header">
       <h2 id="modal-title">&nbsp;</h2>
-      <button aria-label="Close" class="close" type="button">✕</button>
+      <button aria-label="Close" class="close" type="button" onclick="document.getElementById('item-modal').classList.remove('open'); document.getElementById('item-modal').setAttribute('aria-hidden','true');">✕</button>
     </div>
 
     <div class="body">
@@ -288,6 +399,7 @@
   const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSqwYC-Zr3U5qIJ7RdI3IYuxIMj1OHIXmxDiVb3ZFiYgS9SHiyIL1ivSraBg6Jq8GXHB3jYbDfUBVtC/pub?gid=1771094712&single=true&output=csv";
   const AUCTION_BID_URL = "https://goldeneaglelive.auctiontechs.com/auction-detail/175375014368881a7f285f0";
   const COLS = { title:"Title", image:"ImageURL", desc:"Description", link:"LinkURL", price:"Price", caliber:"Caliber", barrel:"Barrel", condition:"Condition" };
+  const ITEMS_PER_PAGE = 50;
 
   /* CSV parser */
   function parseCSV(text){
@@ -330,48 +442,56 @@
     return `https://drive.google.com/thumbnail?id=${encodeURIComponent(t)}&sz=w1600`;
   }
 
-  /* Pull ALL images - expanded to catch all patterns */
+  /* Pull ALL images - maintaining proper order with ImageURL as primary */
   function imagesFromRow(r){
-    const out = new Set();
-    const pushToken = (tok) => {
-      if (!tok) return;
-      String(tok).split(/[,;\n]+/).forEach(piece=>{
-        const p = piece.trim();
-        if (p) out.add(p);
+    const images = [];
+    
+    // First, add the primary image from "ImageURL" column
+    if (r["ImageURL"]) {
+      const tokens = String(r["ImageURL"]).split(/[,;\n]+/);
+      tokens.forEach(t => {
+        const trimmed = t.trim();
+        if (trimmed) images.push(trimmed);
       });
-    };
+    }
     
-    // Check ALL columns for any image-related patterns
-    for (const [key, val] of Object.entries(r)){
-      if (!val) continue;
-      const k = String(key).trim();
-      
-      // Check if column name contains image-related keywords (case insensitive)
-      if (/image|img|photo|pic|driveid/i.test(k)) {
-        pushToken(val);
-      }
-      // Also check columns that end with numbers (like ImageURL1, ImageURL2, etc)
-      else if (/\d+$/.test(k) && /image|img|photo|pic/i.test(k)) {
-        pushToken(val);
-      }
-      // Check columns that are just numbers (1, 2, 3, etc)
-      else if (/^\d+$/.test(k)) {
-        pushToken(val);
+    // Then add ImageURL2 through ImageURL15 in order
+    for (let i = 2; i <= 15; i++) {
+      const col = `ImageURL${i}`;
+      if (r[col]) {
+        const tokens = String(r[col]).split(/[,;\n]+/);
+        tokens.forEach(t => {
+          const trimmed = t.trim();
+          if (trimmed && !images.includes(trimmed)) images.push(trimmed);
+        });
       }
     }
     
-    // Check specific column names that might not match the patterns above
-    const specificColumns = ["Images", "ImageURL", "Image", "Photo", "Picture", "DriveID"];
-    for (const col of specificColumns) {
-      if (r[col]) pushToken(r[col]);
-      // Also check numbered versions
-      for (let i = 1; i <= 15; i++) {
-        if (r[col + i]) pushToken(r[col + i]);
-        if (r[col + "_" + i]) pushToken(r[col + "_" + i]);
+    // Optionally check for other image columns that might exist
+    // (but these will be added at the end, after the ordered ImageURL columns)
+    const otherImageCols = ["Images", "Image", "Photo", "Picture", "DriveID"];
+    for (const col of otherImageCols) {
+      if (r[col]) {
+        const tokens = String(r[col]).split(/[,;\n]+/);
+        tokens.forEach(t => {
+          const trimmed = t.trim();
+          if (trimmed && !images.includes(trimmed)) images.push(trimmed);
+        });
       }
     }
     
-    return Array.from(out);
+    // Check if there are any plain numbered columns (1, 2, 3, etc)
+    for (let i = 1; i <= 15; i++) {
+      if (r[String(i)]) {
+        const tokens = String(r[String(i)]).split(/[,;\n]+/);
+        tokens.forEach(t => {
+          const trimmed = t.trim();
+          if (trimmed && !images.includes(trimmed)) images.push(trimmed);
+        });
+      }
+    }
+    
+    return images;
   }
 
   /* Optional specs parsing */
@@ -426,23 +546,109 @@
         $modalBid=document.getElementById("modal-bid"),
         $modalRail=document.getElementById("modal-rail"),
         $modalNav=document.getElementById("modal-nav"),
-        $modalThumbs = document.getElementById("modal-thumbs");
+        $modalThumbs = document.getElementById("modal-thumbs"),
+        $paginationTop = document.getElementById("pagination-top"),
+        $paginationBottom = document.getElementById("pagination-bottom"),
+        $itemsInfoTop = document.getElementById("items-info-top"),
+        $itemsInfoBottom = document.getElementById("items-info-bottom");
 
   let ITEMS=[];
+  let FILTERED_ITEMS=[];
   let INDEX = new WeakMap();
+  let currentPage = 1;
 
   function rebuildIndex(){
     INDEX = new WeakMap();
     ITEMS.forEach((obj, idx) => INDEX.set(obj, idx));
   }
 
-  function render(list){
+  function renderPagination(){
+    const totalItems = FILTERED_ITEMS.length;
+    const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+    
+    if(totalPages <= 1){
+      $paginationTop.innerHTML = "";
+      $paginationBottom.innerHTML = "";
+      $itemsInfoTop.innerHTML = "";
+      $itemsInfoBottom.innerHTML = "";
+      return;
+    }
+    
+    const startItem = (currentPage - 1) * ITEMS_PER_PAGE + 1;
+    const endItem = Math.min(currentPage * ITEMS_PER_PAGE, totalItems);
+    
+    const itemsInfo = `Showing items ${startItem}-${endItem} of ${totalItems}`;
+    $itemsInfoTop.innerHTML = itemsInfo;
+    $itemsInfoBottom.innerHTML = itemsInfo;
+    
+    let paginationHTML = "";
+    
+    // Previous button
+    paginationHTML += `<button onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>‹ Prev</button>`;
+    
+    // Page numbers
+    if(totalPages <= 7){
+      // Show all pages if 7 or fewer
+      for(let i = 1; i <= totalPages; i++){
+        paginationHTML += `<button onclick="changePage(${i})" class="${i === currentPage ? 'active' : ''}">${i}</button>`;
+      }
+    } else {
+      // Show first page
+      paginationHTML += `<button onclick="changePage(1)" class="${1 === currentPage ? 'active' : ''}">1</button>`;
+      
+      if(currentPage > 3){
+        paginationHTML += `<button disabled>...</button>`;
+      }
+      
+      // Show pages around current
+      for(let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++){
+        paginationHTML += `<button onclick="changePage(${i})" class="${i === currentPage ? 'active' : ''}">${i}</button>`;
+      }
+      
+      if(currentPage < totalPages - 2){
+        paginationHTML += `<button disabled>...</button>`;
+      }
+      
+      // Show last page
+      paginationHTML += `<button onclick="changePage(${totalPages})" class="${totalPages === currentPage ? 'active' : ''}">${totalPages}</button>`;
+    }
+    
+    // Next button
+    paginationHTML += `<button onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Next ›</button>`;
+    
+    // Page info
+    paginationHTML += `<span class="page-info">Page ${currentPage} of ${totalPages}</span>`;
+    
+    $paginationTop.innerHTML = paginationHTML;
+    $paginationBottom.innerHTML = paginationHTML;
+  }
+
+  function changePage(page){
+    const totalPages = Math.ceil(FILTERED_ITEMS.length / ITEMS_PER_PAGE);
+    if(page < 1 || page > totalPages) return;
+    
+    currentPage = page;
+    renderPage();
+    renderPagination();
+    
+    // Scroll to top of catalog
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function renderPage(){
+    const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIdx = Math.min(startIdx + ITEMS_PER_PAGE, FILTERED_ITEMS.length);
+    const pageItems = FILTERED_ITEMS.slice(startIdx, endIdx);
+    
     $catalog.innerHTML="";
-    if(!list.length){$empty.style.display="block";return}
+    if(!pageItems.length){
+      $empty.style.display="block";
+      return;
+    }
     $empty.style.display="none";
 
     const frag=document.createDocumentFragment();
-    for (const it of list){
+    for (const it of pageItems){
       const card=document.createElement("article");
       card.className="catalog-item";
       card.setAttribute("role","button");
@@ -496,10 +702,22 @@
       document.querySelectorAll('.thumb .rail[data-real-count]').forEach(rail => {
         const count = parseInt(rail.dataset.realCount);
         if (count > 1) {
-          rail.scrollLeft = rail.clientWidth; // Start at first real image
+          // Start at first real image (index 1 because we prepended the last image as index 0)
+          rail.scrollLeft = rail.clientWidth;
+          // Reset scroll behavior after positioning
+          rail.style.scrollBehavior = 'auto';
+          rail.scrollLeft = rail.clientWidth;
+          rail.style.scrollBehavior = '';
         }
       });
     }, 100);
+  }
+
+  function render(list){
+    FILTERED_ITEMS = list;
+    currentPage = 1;
+    renderPage();
+    renderPagination();
   }
 
   // Open modal on card click
@@ -544,15 +762,19 @@
     if (visualIdx === 0) {
       // Scrolled to clone of last image at beginning
       setTimeout(() => {
+        rail.style.scrollBehavior = 'auto';
         rail.scrollLeft = realCount * slideWidth;
-        realIdx = realCount - 1;
+        rail.style.scrollBehavior = '';
       }, 50);
+      realIdx = realCount - 1;
     } else if (visualIdx === realCount + 1) {
       // Scrolled to clone of first image at end
       setTimeout(() => {
+        rail.style.scrollBehavior = 'auto';
         rail.scrollLeft = slideWidth;
-        realIdx = 0;
+        rail.style.scrollBehavior = '';
       }, 50);
+      realIdx = 0;
     }
     
     // Ensure realIdx is within bounds
@@ -836,6 +1058,9 @@
       $catalog.innerHTML=""; $empty.style.display="block";
     }
   })();
+  
+  // Make changePage globally accessible
+  window.changePage = changePage;
 </script>
 
 </body>
