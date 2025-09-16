@@ -910,11 +910,12 @@
     $modalTitle.textContent = r[COLS.title] || "Item details";
 
     const parts=[];
-    if (r[COLS.caliber]) parts.push(`Caliber: ${r[COLS.caliber]}`);
-    if (r[COLS.caliberGauge]) parts.push(`Caliber/Gauge: ${r[COLS.caliberGauge]}`);
-    if (r[COLS.barrel])  parts.push(`Barrel: ${r[COLS.barrel]}`);
-    if (r[COLS.condition]) parts.push(`Condition: ${r[COLS.condition]}`);
-    $modalMeta.innerHTML = parts.map(p => esc(p)).join(" &nbsp; ");
+// Remove or comment out the caliber/gauge and condition lines
+// if (r[COLS.caliber]) parts.push(`Caliber: ${r[COLS.caliber]}`);
+// if (r[COLS.caliberGauge]) parts.push(`Caliber/Gauge: ${r[COLS.caliberGauge]}`);
+if (r[COLS.barrel])  parts.push(`Barrel: ${r[COLS.barrel]}`);
+// if (r[COLS.condition]) parts.push(`Condition: ${r[COLS.condition]}`);
+$modalMeta.innerHTML = parts.map(p => esc(p)).join(" &nbsp; ");
 
     const parsedPairs = parsePairs(r[COLS.desc]);
     const specsHTML = buildSpecs(r, parsedPairs);
