@@ -477,8 +477,10 @@
         <div class="desc" id="modal-desc">&nbsp;</div>
         <div class="price" id="modal-price">&nbsp;</div>
         <div class="btn-row">
+          <button class="btn" onclick="shareItem()" style="background:#666;">Share</button>
           <a class="btn" href="#" id="modal-view" rel="noopener" style="display:none;" target="_blank">View Item</a>
           <a class="btn" href="https://goldeneaglelive.auctiontechs.com/auction-detail/175375014368881a7f285f0" id="modal-bid" rel="noopener" target="_blank">BID NOW</a>
+        </div>
         </div>
       </div>
     </div>
@@ -514,6 +516,37 @@
   /* Escape helpers */
   const esc  = s => String(s||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const eattr = s => String(s||"").replace(/"/g,"&quot;");
+
+/* Generate URL-safe slug from title */
+function generateSlug(title) {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .substring(0, 60); // Limit length
+}
+
+/* Find item by slug */
+function findItemBySlug(slug) {
+  return ITEMS.findIndex(item => 
+    generateSlug(item[COLS.title] || '') === slug
+  );
+}
+
+/* Update URL when modal opens */
+function updateURL(item, idx) {
+  const slug = generateSlug(item[COLS.title] || `item-${idx}`);
+  window.history.pushState({itemIndex: idx}, '', `#${slug}`);
+}
+
+/* Handle browser back/forward */
+window.addEventListener('popstate', function(e) {
+  if (e.state && e.state.itemIndex !== undefined) {
+    openModal(e.state.itemIndex);
+  } else if (!window.location.hash) {
+    closeModal();
+  }
+});
 
   /* Drive -> direct image */
   function toImageUrl(token){
@@ -954,6 +987,7 @@
   
     currentModalIndex = idx; // Store current index
     window.currentModalIndex = idx; // Make it globally accessible
+    updateURL(r, idx);  // ADD THIS LINE
     updateModalNavigation(); // Update prev/next buttons
 
     $modalTitle.textContent = "Item details";
@@ -1057,6 +1091,10 @@ $modalMeta.innerHTML = parts.map(p => esc(p)).join(" &nbsp; ");
   function closeModal(){
     $modal.classList.remove("open");
     $modal.setAttribute("aria-hidden","true");
+
+    if (window.location.hash) {
+    window.history.pushState(null, '', window.location.pathname);
+  }
   }
 
   document.querySelector("#item-modal .close").addEventListener("click", closeModal);
@@ -1223,6 +1261,17 @@ $modalMeta.innerHTML = parts.map(p => esc(p)).join(" &nbsp; ");
       window.ITEMS = ITEMS; // Make globally accessible
       rebuildIndex();
       render(ITEMS);
+
+  // Check for direct link on page load
+setTimeout(() => {
+  const hash = window.location.hash.substring(1);
+  if (hash) {
+    const idx = findItemBySlug(hash);
+    if (idx !== -1) {
+      openModal(idx);
+    }
+  }
+}, 100);
     }catch(e){
       console.error(e);
       $catalog.innerHTML=""; $empty.style.display="block";
@@ -1237,6 +1286,23 @@ $modalMeta.innerHTML = parts.map(p => esc(p)).join(" &nbsp; ");
   window.FILTERED_ITEMS = FILTERED_ITEMS;
   window.INDEX = INDEX;
   window.currentModalIndex = currentModalIndex;
+
+ // Add share functionality
+function shareItem() {
+  const url = window.location.href;
+  if (navigator.share) {
+    navigator.share({
+      title: document.getElementById('modal-title').textContent,
+      url: url
+    });
+  } else {
+    // Fallback: copy to clipboard
+    navigator.clipboard.writeText(url).then(() => {
+      alert('Link copied to clipboard!');
+    });
+  }
+}
+window.shareItem = shareItem;
 </script>
 
 </body>
