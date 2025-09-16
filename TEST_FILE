@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Catalog with Pagination</title>
+<style type="text/css">
+  :root { --gap: 20px; --card-radius: 14px; --max: 1200px; }
+  body { font-family: Arial, sans-serif; margin: 0; padding: 24px; background: #fafafa; }
+  .catalog-toolbar { max-width: var(--max); margin: 0 auto 12px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .catalog-toolbar input[type="search"] { flex: 1 1 280px; padding: 12px 14px; border: 1px solid #ddd; border-radius: 10px; font-size: 16px; }
+
+  /* Pagination controls */
+  .pagination {
+    max-width: var(--max);
+    margin: 20px auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .pagination button {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    background: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    min-width: 40px;
+  }
+  .pagination button:hover:not(:disabled) {
+    background: #f5f5f5;
+    border-color: #999;
+  }
+  .pagination button.active {
+    background: #000;
+    color: #fff;
+    border-color: #000;
+  }
+  .pagination button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .pagination .page-info {
+    padding: 0 12px;
+    font-size: 14px;
+    color: #666;
+  }
+  .items-info {
+    max-width: var(--max);
+    margin: 10px auto;
+    text-align: center;
+    font-size: 14px;
+    color: #666;
+  }
+
+  .catalog-container { max-width: var(--max); margin: 0 auto; display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .catalog-item { background: #fff; border: 1px solid #e9e9e9; border-radius: var(--card-radius); overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,.06); transition: transform .2s ease; display: flex; flex-direction: column; }
+  .catalog-item:hover { transform: translateY(-3px); }
+  .catalog-item[role="button"] { cursor: pointer; }
+
+  /* --- Card image slider --- */
+  .catalog-item .thumb { width: 100%; aspect-ratio: 4/3; background:#fff; position: relative; overflow: hidden; }
+  .thumb .rail { 
+    display: flex; 
+    height: 100%; 
+    overflow-x: auto; 
+    scroll-snap-type: x mandatory; 
+    scroll-behavior: smooth; 
+    scrollbar-width: none; 
+    -webkit-overflow-scrolling: touch;
+    scroll-padding: 0;
+  }
+  .thumb .rail::-webkit-scrollbar { display: none; }
+  .thumb .rail img { 
+    flex: 0 0 100%; 
+    width: 100%; 
+    height: 100%; 
+    object-fit: contain; 
+    background:#fff; 
+    scroll-snap-align: start; 
+    scroll-snap-stop: always;
+    user-select: none; 
+  }
+  
+  /* Dots indicator for multiple images */
+  .thumb .dots {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+    padding: 4px 8px;
+    background: rgba(255,255,255,0.9);
+    border-radius: 20px;
+  }
+  .thumb .dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.3);
+    transition: all 0.3s ease;
+  }
+  .thumb .dots span.active {
+    background: #000;
+    width: 8px;
+    height: 8px;
+  }
+
+  .catalog-item .pad { padding: 14px; display: flex; flex-direction: column; flex: 1; }
+  .catalog-item h3 { margin: 6px 0 8px; font-size: 18px; }
+  .meta { font-size: 14px; color: #555; margin-bottom: 10px; }
+  .price { font-weight: 700; margin: 6px 0 12px; }
+  .desc-snippet { font-size:14px; color:#555; margin-bottom:10px; white-space: pre-line; }
+  .btn-row { margin-top: auto; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+  .btn { display: inline-block; background:#000; color:#fff; text-decoration: none; padding:10px 18px; border-radius: 999px; font-weight: 700; }
+  .btn:hover { background:#333; }
+  .empty { max-width: var(--max); margin: 30px auto; color:#666; text-align:center; }
+
+  /* --- Modal (responsive, pinch zoom + drag pan) --- */
+  .modal { 
+    position: fixed; 
+    inset: 0; 
+    background: rgba(0,0,0,.5); 
+    display: none; 
+    align-items: center; 
+    justify-content: center; 
+    padding: 28px; 
+    z-index: 1000;
+  }
+  .modal.open { display: flex; }
+  .modal .dialog { 
+    background: #fff; 
+    border-radius: 14px; 
+    width: min(98vw, 1600px); 
+    max-height: 95vh; 
+    overflow: hidden; 
+    display: flex; 
+    flex-direction: column;
+    position: relative;
+  }
+  .modal .header { 
+    display:flex; 
+    justify-content: space-between; 
+    align-items:center; 
+    padding: 14px 16px; 
+    border-bottom: 1px solid #eee; 
+    flex-shrink: 0;
+    position: relative;
+    background: #fff;
+  }
+  .modal .header h2 { 
+    font-size: 22px; 
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1 1 auto;
+    min-width: 0;
+    margin-right: 20px;
+  }
+  .modal .header-nav {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex: 0 0 auto;
+    justify-content: flex-end;
+  }
+  .modal .nav-btn {
+    border: 0;
+    background: #f0f0f0;
+    color: #333;
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    pointer-events: all;
+    position: relative;
+    z-index: 10;
+  }
+  .modal .nav-btn:hover:not(:disabled) {
+    background: #333;
+    color: #fff;
+  }
+  .modal .nav-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  .modal .item-counter {
+    font-size: 13px;
+    color: #666;
+    padding: 0 8px;
+    white-space: nowrap;
+  }
+  .modal .close { 
+    border: 0; 
+    background: #000; 
+    color:#fff; 
+    border-radius: 999px; 
+    padding:6px 12px; 
+    cursor: pointer; 
+    font-weight: 700;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10;
+    pointer-events: all;
+  }
+  .modal .close:hover {
+    background: #333;
+  }
+  .modal .body { display: grid; grid-template-columns: 1.35fr 1fr; gap: 16px; padding: 16px; overflow: auto; flex: 1; }
+
+  /* Pure white image area */
+  .m-media { position: relative; background: #fff; border-radius: 10px; overflow: hidden; min-height: 400px; height: 60vh; max-height: 600px; display: flex; flex-direction: column; }
+  .m-rail { 
+    display: flex; 
+    flex: 1; 
+    overflow-x: auto; 
+    scroll-snap-type: x mandatory; 
+    scroll-behavior: smooth; 
+    scrollbar-width: none; 
+    background:#fff; 
+    -webkit-overflow-scrolling: touch;
+    scroll-padding: 0;
+  }
+  .m-rail::-webkit-scrollbar { display: none; }
+  .m-rail .slide { 
+    flex: 0 0 100%; 
+    height: 100%; 
+    position: relative;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+  .zoom-wrap { width: 100%; height: 100%; overflow: hidden; touch-action: none; cursor: grab; }
+  .zoom-wrap:active { cursor: grabbing; }
+  .zoom-img { width: 100%; height: 100%; object-fit: contain; transform-origin: 50% 50%; will-change: transform; user-drag: none; user-select: none; }
+
+  /* Hide modal navigation since we have thumbnails */
+  .m-nav { display: none !important; }
+
+  .m-info .price { margin: 6px 0 14px; font-size: 18px; }
+  .m-info .btn-row { margin-top: 14px; }
+  #modal-desc { font-size:14px; color:#555; white-space: pre-line; }
+
+  /* Modal thumbnail strip */
+  .m-thumbs { 
+    display: flex !important; 
+    gap: 8px; 
+    padding: 8px; 
+    overflow-x: auto; 
+    background: #f5f5f5; 
+    border-top: 1px solid #ddd;
+    flex-shrink: 0;
+    min-height: 80px;
+  }
+  .m-thumbs::-webkit-scrollbar { height: 6px; }
+  .m-thumbs::-webkit-scrollbar-track { background: #f1f1f1; }
+  .m-thumbs::-webkit-scrollbar-thumb { background: #888; border-radius: 3px; }
+  .m-thumbs::-webkit-scrollbar-thumb:hover { background: #555; }
+  
+  .m-thumbs button { 
+    border: 2px solid transparent; 
+    padding: 0; 
+    background: transparent; 
+    flex: 0 0 auto; 
+    width: 64px; 
+    height: 64px; 
+    border-radius: 8px; 
+    overflow: hidden; 
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .m-thumbs button:hover { transform: scale(1.05); }
+  .m-thumbs img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .m-thumbs button.is-active { 
+    border-color: #000; 
+    box-shadow: 0 0 0 1px #000 inset;
+  }
+
+  /* Specs list */
+  .specs { font-size: 14px; line-height: 1.6; margin: 6px 0 10px; }
+  .specs .spec-row { margin: 6px 0; }
+  .specs .spec-label { font-weight: 700; }
+  .specs .spec-val { font-weight: 400; }
+
+  /* ---------- Mobile adjustments ---------- */
+  @media (max-width: 600px){
+    body { padding: 12px; }
+    .catalog-container { gap: 14px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+
+    .modal { padding: 0; align-items: stretch; }
+    .modal .dialog { 
+      width: 100vw; 
+      height: 100vh; 
+      max-height: 100vh;
+      border-radius: 0; 
+      display: flex; 
+      flex-direction: column; 
+    }
+    .modal .header { 
+      position: relative;
+      top: auto;
+      z-index: 1;
+      background: #fff; 
+      padding: 12px 14px; 
+    }
+    .modal .header h2 { font-size: 18px; }
+
+    .modal .body { 
+      grid-template-columns: 1fr; 
+      gap: 0; 
+      padding: 0; 
+      overflow: auto; 
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .m-media { 
+      min-height: 40vh;
+      height: 50vh;
+      max-height: 50vh;
+      border-radius: 0; 
+      flex-shrink: 0;
+    }
+    
+    .m-thumbs { 
+      position: sticky;
+      bottom: 0;
+      z-index: 10;
+      background: rgba(255,255,255,0.98);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+      min-height: 72px;
+    }
+    .m-thumbs button { width: 56px; height: 56px; }
+    
+    .m-info { 
+      padding: 12px; 
+      flex: 1;
+      overflow: auto;
+    }
+    
+    .pagination button {
+      padding: 6px 10px;
+      font-size: 13px;
+      min-width: 35px;
+    }
+  }
+
+  @media (orientation: landscape) and (max-width: 900px){
+    .m-media { 
+      min-height: 50vh;
+      height: 55vh;
+      max-height: 400px;
+    }
+  }
+
+  @media (min-width: 601px) and (max-width: 1000px){
+    .modal .dialog { width: 96vw; max-height: 90vh; }
+    .modal .body { grid-template-columns: 1.2fr 1fr; }
+    .m-media { min-height: 400px; height: 55vh; max-height: 500px; }
+  }
+
+  /* Squarespace-specific fixes */
+  .sqs-block-code .modal,
+  .sqs-block-code .modal * {
+    box-sizing: border-box !important;
+  }
+  
+  .sqs-block-code .m-thumbs {
+    visibility: visible !important;
+    opacity: 1 !important;
+    display: flex !important;
+  }
+</style>
+</head>
+<body>
+
+<div class="catalog-toolbar">
+  <input id="search" placeholder="Search inventory…" type="search" />
+</div>
+
+<!-- Top pagination -->
+<div class="pagination" id="pagination-top"></div>
+<div class="items-info" id="items-info-top"></div>
+
+<div aria-live="polite" class="catalog-container" id="catalog">&nbsp;</div>
+
+<div class="empty" id="empty" style="display:none;">No items match your search.</div>
+
+<!-- Bottom pagination -->
+<div class="items-info" id="items-info-bottom"></div>
+<div class="pagination" id="pagination-bottom"></div>
+
+<!-- Modal -->
+<div aria-hidden="true" class="modal" id="item-modal">
+  <div aria-labelledby="modal-title" aria-modal="true" class="dialog" role="dialog">
+    <div class="header">
+      <h2 id="modal-title">&nbsp;</h2>
+      <div class="header-nav">
+        <button class="nav-btn" id="modal-prev" onclick="if(typeof navigateItem !== 'undefined') navigateItem(-1); else console.log('navigateItem not found');">‹ Prev</button>
+        <span class="item-counter" id="modal-counter">1 of 1</span>
+        <button class="nav-btn" id="modal-next" onclick="if(typeof navigateItem !== 'undefined') navigateItem(1); else console.log('navigateItem not found');">Next ›</button>
+        <button aria-label="Close" class="close" type="button" onclick="document.getElementById('item-modal').classList.remove('open'); document.getElementById('item-modal').setAttribute('aria-hidden','true');">✕</button>
+      </div>
+    </div>
+
+    <div class="body">
+      <div class="m-media">
+        <div class="m-rail" id="modal-rail">&nbsp;</div>
+        <div class="m-nav" id="modal-nav" style="display:none;">
+          <button aria-label="Previous" data-dir="-1" type="button">‹</button>
+          <button aria-label="Next" data-dir="1" type="button">›</button>
+        </div>
+        <div class="m-thumbs" id="modal-thumbs" role="listbox" aria-label="Select image"></div>
+      </div>
+
+      <div class="m-info">
+        <div class="meta" id="modal-meta">&nbsp;</div>
+        <div class="specs" id="modal-specs">&nbsp;</div>
+        <div class="desc" id="modal-desc">&nbsp;</div>
+        <div class="price" id="modal-price">&nbsp;</div>
+        <div class="btn-row">
+          <a class="btn" href="#" id="modal-view" rel="noopener" style="display:none;" target="_blank">View Item</a>
+          <a class="btn" href="https://goldeneaglelive.auctiontechs.com/auction-detail/175375014368881a7f285f0" id="modal-bid" rel="noopener" target="_blank">BID NOW</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSqwYC-Zr3U5qIJ7RdI3IYuxIMj1OHIXmxDiVb3ZFiYgS9SHiyIL1ivSraBg6Jq8GXHB3jYbDfUBVtC/pub?gid=1771094712&single=true&output=csv";
+  const AUCTION_BID_URL = "https://goldeneaglelive.auctiontechs.com/auction-detail/175375014368881a7f285f0";
+  const COLS = { title:"Title", image:"ImageURL", desc:"Description", link:"LinkURL", price:"Price", caliber:"Caliber", barrel:"Barrel", condition:"Condition" };
+  const ITEMS_PER_PAGE = 50;
+
+  /* CSV parser */
+  function parseCSV(text){
+    const rows=[]; let i=0,field="",row=[],inQuotes=false;
+    while(i<text.length){
+      const c=text[i],n=text[i+1];
+      if(inQuotes){
+        if(c==='"'&&n==='"'){field+='"';i+=2;continue}
+        if(c==='"'){inQuotes=false;i++;continue}
+        field+=c;i++;continue
+      }
+      if(c==='"'){inQuotes=true;i++;continue}
+      if(c===','){row.push(field);field="";i++;continue}
+      if(c==='\n'){row.push(field);rows.push(row);field="";row=[];i++;continue}
+      if(c==='\r'){i++;continue}
+      field+=c;i++
+    }
+    if(field.length||row.length){row.push(field);rows.push(row)}
+    return rows
+  }
+
+  /* Escape helpers */
+  const esc  = s => String(s||"").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const eattr = s => String(s||"").replace(/"/g,"&quot;");
+
+  /* Drive -> direct image */
+  function toImageUrl(token){
+    if (!token) return "";
+    const t = String(token).trim();
+
+    if (/^https?:\/\//i.test(t)){
+      if (/(?:\/folders\/)/i.test(t)) return t;
+      let id = null;
+      const m = t.match(/(?:\/d\/|[?&]id=)([A-Za-z0-9_-]{20,})/);
+      if (m) id = m[1];
+      if (!id){ try { id = new URL(t).searchParams.get("id"); } catch(e){} }
+      if (id) return `https://drive.google.com/thumbnail?id=${id}&sz=w1600`;
+      return t;
+    }
+    return `https://drive.google.com/thumbnail?id=${encodeURIComponent(t)}&sz=w1600`;
+  }
+
+  /* Pull ALL images - maintaining proper order with ImageURL as primary */
+  function imagesFromRow(r){
+    const images = [];
+    
+    // First, add the primary image from "ImageURL" column
+    if (r["ImageURL"]) {
+      const tokens = String(r["ImageURL"]).split(/[,;\n]+/);
+      tokens.forEach(t => {
+        const trimmed = t.trim();
+        if (trimmed) images.push(trimmed);
+      });
+    }
+    
+    // Then add ImageURL2 through ImageURL15 in order
+    for (let i = 2; i <= 15; i++) {
+      const col = `ImageURL${i}`;
+      if (r[col]) {
+        const tokens = String(r[col]).split(/[,;\n]+/);
+        tokens.forEach(t => {
+          const trimmed = t.trim();
+          if (trimmed && !images.includes(trimmed)) images.push(trimmed);
+        });
+      }
+    }
+    
+    // Optionally check for other image columns that might exist
+    // (but these will be added at the end, after the ordered ImageURL columns)
+    const otherImageCols = ["Images", "Image", "Photo", "Picture", "DriveID"];
+    for (const col of otherImageCols) {
+      if (r[col]) {
+        const tokens = String(r[col]).split(/[,;\n]+/);
+        tokens.forEach(t => {
+          const trimmed = t.trim();
+          if (trimmed && !images.includes(trimmed)) images.push(trimmed);
+        });
+      }
+    }
+    
+    // Check if there are any plain numbered columns (1, 2, 3, etc)
+    for (let i = 1; i <= 15; i++) {
+      if (r[String(i)]) {
+        const tokens = String(r[String(i)]).split(/[,;\n]+/);
+        tokens.forEach(t => {
+          const trimmed = t.trim();
+          if (trimmed && !images.includes(trimmed)) images.push(trimmed);
+        });
+      }
+    }
+    
+    return images;
+  }
+
+  /* Optional specs parsing */
+  const SPEC_FIELDS = [
+    {key:"UPC", label:"UPC"},
+    {key:"SerialNumber", label:"Serial Number"},
+    {key:"Model", label:"Model"},
+    {key:"Caliber", label:"Caliber"},
+    {key:"BarrelLength", label:"Barrel Length"},
+    {key:"Condition", label:"Condition"},
+    {key:"ConditionGrade", label:"Condition Grade"},
+    {key:"Classification", label:"Classification"},
+    {key:"Features", label:"Features"},
+  ];
+  
+  function parsePairs(desc){
+    if(!desc) return {};
+    const out={};
+    String(desc).split(/\r?\n+/).forEach(line=>{
+      const i=line.indexOf(':');
+      if(i>0){
+        const k=line.slice(0,i).trim().toLowerCase();
+        const v=line.slice(i+1).trim();
+        if(k) out[k]=v;
+      }
+    });
+    return out;
+  }
+  
+  function buildSpecs(row, parsed){
+    const rows=[];
+    for(const f of SPEC_FIELDS){
+      let val = row[f.key];
+      if(!val && parsed) val = parsed[f.label.toLowerCase()];
+      if(val){
+        rows.push(`<div class="spec-row"><span class="spec-label">${esc(f.label)}:</span> <span class="spec-val">${esc(val)}</span></div>`);
+      }
+    }
+    return rows.join("");
+  }
+
+  const $catalog=document.getElementById("catalog"),
+        $empty=document.getElementById("empty"),
+        $search=document.getElementById("search"),
+        $modal=document.getElementById("item-modal"),
+        $modalTitle=document.getElementById("modal-title"),
+        $modalMeta=document.getElementById("modal-meta"),
+        $modalSpecs=document.getElementById("modal-specs"),
+        $modalDesc=document.getElementById("modal-desc"),
+        $modalPrice=document.getElementById("modal-price"),
+        $modalView=document.getElementById("modal-view"),
+        $modalBid=document.getElementById("modal-bid"),
+        $modalRail=document.getElementById("modal-rail"),
+        $modalNav=document.getElementById("modal-nav"),
+        $modalThumbs = document.getElementById("modal-thumbs"),
+        $paginationTop = document.getElementById("pagination-top"),
+        $paginationBottom = document.getElementById("pagination-bottom"),
+        $itemsInfoTop = document.getElementById("items-info-top"),
+        $itemsInfoBottom = document.getElementById("items-info-bottom");
+
+  let ITEMS=[];
+  let FILTERED_ITEMS=[];
+  let INDEX = new WeakMap();
+  let currentPage = 1;
+  let currentModalIndex = -1; // Track current item index in modal
+
+  function rebuildIndex(){
+    INDEX = new WeakMap();
+    ITEMS.forEach((obj, idx) => INDEX.set(obj, idx));
+    window.INDEX = INDEX; // Make globally accessible
+  }
+
+  function renderPagination(){
+    const totalItems = FILTERED_ITEMS.length;
+    const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+    
+    if(totalPages <= 1){
+      $paginationTop.innerHTML = "";
+      $paginationBottom.innerHTML = "";
+      $itemsInfoTop.innerHTML = "";
+      $itemsInfoBottom.innerHTML = "";
+      return;
+    }
+    
+    const startItem = (currentPage - 1) * ITEMS_PER_PAGE + 1;
+    const endItem = Math.min(currentPage * ITEMS_PER_PAGE, totalItems);
+    
+    const itemsInfo = `Showing items ${startItem}-${endItem} of ${totalItems}`;
+    $itemsInfoTop.innerHTML = itemsInfo;
+    $itemsInfoBottom.innerHTML = itemsInfo;
+    
+    let paginationHTML = "";
+    
+    // Previous button
+    paginationHTML += `<button onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>‹ Prev</button>`;
+    
+    // Page numbers
+    if(totalPages <= 7){
+      // Show all pages if 7 or fewer
+      for(let i = 1; i <= totalPages; i++){
+        paginationHTML += `<button onclick="changePage(${i})" class="${i === currentPage ? 'active' : ''}">${i}</button>`;
+      }
+    } else {
+      // Show first page
+      paginationHTML += `<button onclick="changePage(1)" class="${1 === currentPage ? 'active' : ''}">1</button>`;
+      
+      if(currentPage > 3){
+        paginationHTML += `<button disabled>...</button>`;
+      }
+      
+      // Show pages around current
+      for(let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++){
+        paginationHTML += `<button onclick="changePage(${i})" class="${i === currentPage ? 'active' : ''}">${i}</button>`;
+      }
+      
+      if(currentPage < totalPages - 2){
+        paginationHTML += `<button disabled>...</button>`;
+      }
+      
+      // Show last page
+      paginationHTML += `<button onclick="changePage(${totalPages})" class="${totalPages === currentPage ? 'active' : ''}">${totalPages}</button>`;
+    }
+    
+    // Next button
+    paginationHTML += `<button onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Next ›</button>`;
+    
+    // Page info
+    paginationHTML += `<span class="page-info">Page ${currentPage} of ${totalPages}</span>`;
+    
+    $paginationTop.innerHTML = paginationHTML;
+    $paginationBottom.innerHTML = paginationHTML;
+  }
+
+  function changePage(page){
+    const totalPages = Math.ceil(FILTERED_ITEMS.length / ITEMS_PER_PAGE);
+    if(page < 1 || page > totalPages) return;
+    
+    currentPage = page;
+    renderPage();
+    renderPagination();
+    
+    // Scroll to top of catalog
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function renderPage(){
+    const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIdx = Math.min(startIdx + ITEMS_PER_PAGE, FILTERED_ITEMS.length);
+    const pageItems = FILTERED_ITEMS.slice(startIdx, endIdx);
+    
+    $catalog.innerHTML="";
+    if(!pageItems.length){
+      $empty.style.display="block";
+      return;
+    }
+    $empty.style.display="none";
+
+    const frag=document.createDocumentFragment();
+    for (const it of pageItems){
+      const card=document.createElement("article");
+      card.className="catalog-item";
+      card.setAttribute("role","button");
+      card.setAttribute("tabindex","0");
+
+      const idx = INDEX.has(it) ? INDEX.get(it) : -1;
+      card.dataset.idx = String(idx);
+
+      const imgs = imagesFromRow(it);
+      let thumbHtml = "";
+      if (imgs.length){
+        // Clone first and last for infinite scroll effect
+        const extendedImgs = [...imgs];
+        if (imgs.length > 1) {
+          extendedImgs.push(imgs[0]); // Add first image at end
+          extendedImgs.unshift(imgs[imgs.length - 1]); // Add last image at start
+        }
+        
+        const slides = extendedImgs.map(u =>
+          `<img referrerpolicy="no-referrer" src="${eattr(toImageUrl(u))}" alt="${esc(it[COLS.title]||"Item image")}" loading="lazy">`
+        ).join("");
+        const dots = imgs.length > 1 ? `<div class="dots">${imgs.map((_, i) => `<span class="${i===0?'active':''}"></span>`).join('')}</div>` : "";
+        thumbHtml = `<div class="thumb"><div class="rail" data-real-count="${imgs.length}">${slides}</div>${dots}</div>`;
+      }else{
+        thumbHtml = `<div class="thumb"></div>`;
+      }
+
+      const buttons = `<div class="btn-row">${
+        it[COLS.link]?`<a class="btn" href="${eattr(it[COLS.link])}" target="_blank" rel="noopener">View Item</a>`:""
+      }<a class="btn" href="${AUCTION_BID_URL}" target="_blank" rel="noopener">BID NOW</a></div>`;
+
+      card.innerHTML = `
+        ${thumbHtml}
+        <div class="pad">
+          <h3>${esc(it[COLS.title]||"")}</h3>
+          <div class="meta">
+            ${it[COLS.caliber]?`Caliber: ${esc(it[COLS.caliber])} &nbsp;`:""}
+            ${it[COLS.barrel]?`Barrel: ${esc(it[COLS.barrel])} &nbsp;`:""}
+            ${it[COLS.condition]?`Condition: ${esc(it[COLS.condition])}`:""}
+          </div>
+          ${it[COLS.desc]?`<div class="desc-snippet">${esc(it[COLS.desc])}</div>`:""}
+          ${it[COLS.price]?`<div class="price">$${esc(String(it[COLS.price]))}</div>`:""}
+          ${buttons}
+        </div>`;
+      frag.appendChild(card);
+    }
+    $catalog.appendChild(frag);
+    
+    // Initialize card rails with proper starting position
+    setTimeout(() => {
+      document.querySelectorAll('.thumb .rail[data-real-count]').forEach(rail => {
+        const count = parseInt(rail.dataset.realCount);
+        if (count > 1) {
+          // Start at first real image (index 1 because we prepended the last image as index 0)
+          rail.scrollLeft = rail.clientWidth;
+          // Reset scroll behavior after positioning
+          rail.style.scrollBehavior = 'auto';
+          rail.scrollLeft = rail.clientWidth;
+          rail.style.scrollBehavior = '';
+        }
+      });
+    }, 100);
+  }
+
+  function render(list){
+    FILTERED_ITEMS = list;
+    window.FILTERED_ITEMS = list; // Make globally accessible
+    currentPage = 1;
+    renderPage();
+    renderPagination();
+  }
+
+  // Open modal on card click
+  $catalog.addEventListener("click", (e)=>{
+    if (e.target.closest("a")) return;
+    const card = e.target.closest(".catalog-item");
+    if (!card) return;
+    const idx = parseInt(card.dataset.idx,10);
+    if (Number.isNaN(idx) || idx < 0) return;
+    openModal(idx);
+  });
+  
+  // Keyboard open
+  $catalog.addEventListener("keydown", (e)=>{
+    if (e.key !== "Enter") return;
+    const card = e.target.closest(".catalog-item");
+    if (!card) return;
+    const idx = parseInt(card.dataset.idx,10);
+    if (Number.isNaN(idx) || idx < 0) return;
+    openModal(idx);
+  });
+
+  // Track card image scrolling for dots with looping
+  $catalog.addEventListener("scroll", (e)=>{
+    const rail = e.target.closest(".rail");
+    if (!rail) return;
+    const thumb = rail.closest(".thumb");
+    const dots = thumb.querySelector(".dots");
+    if (!dots) return;
+    
+    const realCount = parseInt(rail.dataset.realCount);
+    if (realCount <= 1) return;
+    
+    const slideWidth = rail.clientWidth;
+    const currentScroll = rail.scrollLeft;
+    
+    // Calculate actual image index (accounting for cloned images)
+    let visualIdx = Math.round(currentScroll / slideWidth);
+    let realIdx = visualIdx - 1; // Subtract 1 because of prepended clone
+    
+    // Handle looping
+    if (visualIdx === 0) {
+      // Scrolled to clone of last image at beginning
+      setTimeout(() => {
+        rail.style.scrollBehavior = 'auto';
+        rail.scrollLeft = realCount * slideWidth;
+        rail.style.scrollBehavior = '';
+      }, 50);
+      realIdx = realCount - 1;
+    } else if (visualIdx === realCount + 1) {
+      // Scrolled to clone of first image at end
+      setTimeout(() => {
+        rail.style.scrollBehavior = 'auto';
+        rail.scrollLeft = slideWidth;
+        rail.style.scrollBehavior = '';
+      }, 50);
+      realIdx = 0;
+    }
+    
+    // Ensure realIdx is within bounds
+    if (realIdx < 0) realIdx = realCount - 1;
+    if (realIdx >= realCount) realIdx = 0;
+    
+    // Update dots
+    const dotElements = dots.querySelectorAll("span");
+    dotElements.forEach((d, i) => d.classList.toggle("active", i === realIdx));
+  }, true);
+
+  // Modal logic
+  let scale=1, minScale=1, maxScale=4, tx=0, ty=0;
+  let currentImg=null, currentWrap=null;
+
+  function setTransform(){
+    if (!currentImg) return;
+    currentImg.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+  }
+  function resetZoom(){ scale=1; tx=0; ty=0; setTransform(); }
+  function clampPan(){
+    if (!currentWrap) return;
+    const w = currentWrap.clientWidth, h = currentWrap.clientHeight;
+    const maxX = (w * (scale - 1)) / 2;
+    const maxY = (h * (scale - 1)) / 2;
+    tx = Math.max(-maxX, Math.min(maxX, tx));
+    ty = Math.max(-maxY, Math.min(maxY, ty));
+  }
+  function attachSlideRefs(index){
+    const slide = $modalRail.querySelectorAll(".slide")[index];
+    if (!slide) return;
+    currentWrap = slide.querySelector(".zoom-wrap");
+    currentImg  = slide.querySelector(".zoom-img");
+    resetZoom();
+  }
+  
+  function buildModalSlides(imgs, title){
+    // Clone first and last for infinite scroll
+    const extendedImgs = [...imgs];
+    if (imgs.length > 1) {
+      extendedImgs.push(imgs[0]); // Add first at end
+      extendedImgs.unshift(imgs[imgs.length - 1]); // Add last at start
+    }
+    
+    $modalRail.innerHTML = extendedImgs.map(u=>(
+      `<div class="slide">
+         <div class="zoom-wrap">
+           <img referrerpolicy="no-referrer" class="zoom-img" src="${eattr(toImageUrl(u))}" alt="${esc(title||'Item image')}">
+         </div>
+       </div>`
+    )).join("");
+    
+    $modalRail.dataset.realCount = imgs.length;
+  }
+  
+  function buildModalThumbs(imgs, title){
+    if (imgs.length <= 1) {
+      $modalThumbs.innerHTML = "";
+      $modalThumbs.style.display = "none";
+      return;
+    }
+    
+    $modalThumbs.innerHTML = imgs.map((u,i)=>
+      `<button type="button" class="${i===0?'is-active':''}" data-idx="${i}" aria-label="Image ${i+1} of ${imgs.length}" aria-selected="${i===0?'true':'false'}" role="option">
+        <img referrerpolicy="no-referrer" src="${eattr(toImageUrl(u))}" alt="${esc(title||'Thumbnail')}">
+      </button>`
+    ).join("");
+    $modalThumbs.style.display = "flex";
+  }
+  
+  function updateActiveThumb(idx){
+    const btns = $modalThumbs.querySelectorAll("button[data-idx]");
+    btns.forEach((b,i)=>{ 
+      const a = i===idx; 
+      b.classList.toggle("is-active", a); 
+      b.setAttribute("aria-selected", a ? "true" : "false"); 
+    });
+  }
+
+  function openModal(idx){
+    const r = ITEMS[idx];
+    if (!r) return;
+    
+    currentModalIndex = idx; // Store current index
+    window.currentModalIndex = idx; // Make it globally accessible
+    updateModalNavigation(); // Update prev/next buttons
+
+    $modalTitle.textContent = r[COLS.title] || "Item details";
+
+    const parts=[];
+    if (r[COLS.caliber]) parts.push(`Caliber: ${r[COLS.caliber]}`);
+    if (r[COLS.barrel])  parts.push(`Barrel: ${r[COLS.barrel]}`);
+    if (r[COLS.condition]) parts.push(`Condition: ${r[COLS.condition]}`);
+    $modalMeta.innerHTML = parts.map(p => esc(p)).join(" &nbsp; ");
+
+    const parsedPairs = parsePairs(r[COLS.desc]);
+    const specsHTML = buildSpecs(r, parsedPairs);
+    $modalSpecs.innerHTML = specsHTML;
+
+    $modalDesc.textContent = r[COLS.desc] || "";
+    $modalPrice.textContent = r[COLS.price] ? ("$" + String(r[COLS.price])) : "";
+
+    if (r[COLS.link]){ 
+      $modalView.style.display=""; 
+      $modalView.href = r[COLS.link]; 
+    } else { 
+      $modalView.style.display="none"; 
+      $modalView.removeAttribute("href"); 
+    }
+    $modalBid.href = AUCTION_BID_URL;
+
+    const imgs = imagesFromRow(r);
+    buildModalSlides(imgs, r[COLS.title]);
+    buildModalThumbs(imgs, r[COLS.title]);
+    
+    $modal.classList.add("open");
+    $modal.setAttribute("aria-hidden","false");
+    
+    // Start at first real image (index 1 because of prepended clone)
+    if (imgs.length > 1) {
+      $modalRail.scrollLeft = $modalRail.clientWidth;
+    } else {
+      $modalRail.scrollLeft = 0;
+    }
+    attachSlideRefs(imgs.length > 1 ? 1 : 0);
+  }
+  
+  function updateModalNavigation(){
+    // Find current item's position in filtered items
+    let filteredIndex = -1;
+    for(let i = 0; i < FILTERED_ITEMS.length; i++){
+      if(INDEX.get(FILTERED_ITEMS[i]) === currentModalIndex){
+        filteredIndex = i;
+        break;
+      }
+    }
+    
+    const prevBtn = document.getElementById("modal-prev");
+    const nextBtn = document.getElementById("modal-next");
+    const counter = document.getElementById("modal-counter");
+    
+    if(filteredIndex !== -1){
+      // Update counter
+      counter.textContent = `${filteredIndex + 1} of ${FILTERED_ITEMS.length}`;
+      
+      // Enable/disable buttons
+      prevBtn.disabled = filteredIndex === 0;
+      nextBtn.disabled = filteredIndex === FILTERED_ITEMS.length - 1;
+    } else {
+      // If not found in filtered items, disable navigation
+      prevBtn.disabled = true;
+      nextBtn.disabled = true;
+      counter.textContent = "";
+    }
+  }
+  
+  function navigateItem(direction){
+    // Find current item's position in filtered items
+    let filteredIndex = -1;
+    for(let i = 0; i < FILTERED_ITEMS.length; i++){
+      if(INDEX.get(FILTERED_ITEMS[i]) === currentModalIndex){
+        filteredIndex = i;
+        break;
+      }
+    }
+    
+    if(filteredIndex === -1) return;
+    
+    const newIndex = filteredIndex + direction;
+    if(newIndex >= 0 && newIndex < FILTERED_ITEMS.length){
+      const newItem = FILTERED_ITEMS[newIndex];
+      const newItemIndex = INDEX.get(newItem);
+      if(newItemIndex !== undefined){
+        openModal(newItemIndex);
+      }
+    }
+  }
+
+  function closeModal(){
+    $modal.classList.remove("open");
+    $modal.setAttribute("aria-hidden","true");
+  }
+
+  document.querySelector("#item-modal .close").addEventListener("click", closeModal);
+  $modal.addEventListener("click", (e)=>{ if (e.target === $modal) closeModal(); });
+  document.addEventListener("keydown", (e)=>{ 
+    if (e.key === "Escape") closeModal();
+    
+    // Add arrow key navigation when modal is open
+    if($modal.classList.contains("open")){
+      if(e.key === "ArrowLeft"){
+        e.preventDefault();
+        navigateItem(-1);
+      } else if(e.key === "ArrowRight"){
+        e.preventDefault();
+        navigateItem(1);
+      }
+    }
+  });
+  
+  // Thumbnail clicks
+  $modalThumbs.addEventListener("click", (e)=>{
+    const btn = e.target.closest("button[data-idx]"); 
+    if (!btn) return;
+    const idx = parseInt(btn.getAttribute("data-idx"), 10);
+    const realCount = parseInt($modalRail.dataset.realCount);
+    
+    if (realCount > 1) {
+      // Account for prepended clone
+      $modalRail.scrollTo({ left: (idx + 1) * $modalRail.clientWidth, behavior: "smooth" });
+      attachSlideRefs(idx + 1);
+    } else {
+      $modalRail.scrollTo({ left: idx * $modalRail.clientWidth, behavior: "smooth" });
+      attachSlideRefs(idx);
+    }
+    updateActiveThumb(idx);
+  });
+
+  // Track current slide on scroll end with looping
+  let scrollTimer=null;
+  $modalRail.addEventListener("scroll", ()=>{
+    clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(()=>{
+      const realCount = parseInt($modalRail.dataset.realCount);
+      if (!realCount || realCount <= 1) {
+        attachSlideRefs(0);
+        updateActiveThumb(0);
+        return;
+      }
+      
+      const slideWidth = $modalRail.clientWidth;
+      const currentScroll = $modalRail.scrollLeft;
+      
+      // Calculate visual index
+      let visualIdx = Math.round(currentScroll / slideWidth);
+      let realIdx = visualIdx - 1; // Account for prepended clone
+      
+      // Handle looping
+      if (visualIdx === 0) {
+        // At clone of last image
+        $modalRail.scrollLeft = realCount * slideWidth;
+        realIdx = realCount - 1;
+      } else if (visualIdx === realCount + 1) {
+        // At clone of first image
+        $modalRail.scrollLeft = slideWidth;
+        realIdx = 0;
+      }
+      
+      // Ensure realIdx is within bounds
+      if (realIdx < 0) realIdx = realCount - 1;
+      if (realIdx >= realCount) realIdx = 0;
+      
+      attachSlideRefs(visualIdx);
+      updateActiveThumb(realIdx);
+    }, 80);
+  });
+
+  // Double-click / double-tap to toggle zoom
+  $modalRail.addEventListener("dblclick", ()=>{
+    if (!currentWrap) return;
+    scale = (scale === 1) ? 2 : 1; tx=0; ty=0; setTransform();
+  });
+
+  // Ctrl + wheel zoom (desktop)
+  $modalRail.addEventListener("wheel", (e)=>{
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    const delta = Math.sign(e.deltaY);
+    scale = Math.max(minScale, Math.min(maxScale, +(scale + (delta > 0 ? -0.25 : 0.25)).toFixed(2)));
+    if (scale===1){ tx=0; ty=0; }
+    clampPan(); setTransform();
+  }, { passive:false });
+
+  // Drag to pan when zoomed
+  let dragging=false, startX=0, startY=0, startTx=0, startTy=0;
+  function panStart(clientX, clientY){
+    if (scale<=1 || !currentWrap) return;
+    dragging=true; startX=clientX; startY=clientY; startTx=tx; startTy=ty;
+  }
+  function panMove(clientX, clientY){
+    if (!dragging) return;
+    tx = startTx + (clientX - startX);
+    ty = startTy + (clientY - startY);
+    clampPan(); setTransform();
+  }
+  function panEnd(){ dragging=false; }
+
+  $modalRail.addEventListener("mousedown", (e)=>{
+    if (!e.target.closest(".zoom-wrap")) return;
+    e.preventDefault(); panStart(e.clientX, e.clientY);
+  });
+  window.addEventListener("mousemove", (e)=>{ if (dragging) panMove(e.clientX, e.clientY); });
+  window.addEventListener("mouseup", panEnd);
+
+  // Touch pan + pinch zoom
+  let pinchStartDist=null, pinchStartScale=1;
+  function distance(t1,t2){ const dx=t1.clientX-t2.clientX, dy=t1.clientY-t2.clientY; return Math.hypot(dx,dy); }
+
+  $modalRail.addEventListener("touchstart", (e)=>{
+    if (e.touches.length===1){
+      const t=e.touches[0]; panStart(t.clientX, t.clientY);
+    } else if (e.touches.length===2){
+      dragging=false;
+      pinchStartDist = distance(e.touches[0], e.touches[1]);
+      pinchStartScale = scale;
+    }
+  }, {passive:false});
+
+  $modalRail.addEventListener("touchmove", (e)=>{
+    if (e.touches.length===1 && dragging){
+      const t=e.touches[0]; e.preventDefault(); panMove(t.clientX, t.clientY);
+    } else if (e.touches.length===2 && pinchStartDist){
+      e.preventDefault();
+      const d = distance(e.touches[0], e.touches[1]);
+      scale = Math.max(1, Math.min(4, (pinchStartScale * d / pinchStartDist)));
+      clampPan(); setTransform();
+    }
+  }, {passive:false});
+
+  $modalRail.addEventListener("touchend", (e)=>{
+    if (dragging) panEnd();
+    if (!e.touches || e.touches.length < 2) pinchStartDist = null;
+  }, {passive:true});
+
+  $modalRail.addEventListener("touchcancel", ()=>{ dragging=false; pinchStartDist=null; }, {passive:true});
+
+  // Search functionality
+  $search.addEventListener("input",()=>{
+    const q=$search.value.trim().toLowerCase();
+    if(!q) return render(ITEMS);
+    const filtered=ITEMS.filter(r=>[r[COLS.title],r[COLS.desc],r[COLS.caliber],r[COLS.condition],r[COLS.barrel]]
+      .filter(Boolean).join(" ").toLowerCase().includes(q));
+    render(filtered)
+  });
+
+  // Load data
+  (async function(){
+    try{
+      const res=await fetch(SHEET_CSV_URL,{cache:"no-store"});
+      const csv=await res.text();
+      const rows=parseCSV(csv);
+      const headers=rows[0];
+      const data=rows.slice(1).map(r=>{const o={};headers.forEach((h,i)=>o[h.trim()]=r[i]||"");return o});
+      ITEMS=data.filter(r=>(r[COLS.title]||"").trim().length);
+      window.ITEMS = ITEMS; // Make globally accessible
+      rebuildIndex();
+      render(ITEMS);
+    }catch(e){
+      console.error(e);
+      $catalog.innerHTML=""; $empty.style.display="block";
+    }
+  })();
+  
+  // Make everything globally accessible for inline onclick handlers
+  window.changePage = changePage;
+  window.navigateItem = navigateItem;
+  window.closeModal = closeModal;
+  window.openModal = openModal;
+  window.FILTERED_ITEMS = FILTERED_ITEMS;
+  window.INDEX = INDEX;
+  window.currentModalIndex = currentModalIndex;
+</script>
+
+</body>
+</html>
