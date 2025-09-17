@@ -1015,6 +1015,9 @@ function loadHighResIfNeeded() {
     currentWrap = slide.querySelector(".zoom-wrap");
     currentImg  = slide.querySelector(".zoom-img");
     resetZoom();
+    if (currentImg) {
+      loadHighResIfNeeded();
+    }
   }
   
   function buildModalSlides(imgs, title){
