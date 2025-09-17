@@ -404,10 +404,6 @@
     background: #333;
     color: #fff;
   }
-
-.modal .body {
-    padding-bottom: 0;
-  }
   
   .m-info {
     display: flex;
