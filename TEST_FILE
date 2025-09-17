@@ -613,7 +613,7 @@ function toImageUrl(token, size = 'w1600'){
   }
   // For direct IDs
   if (size === 'original') {
-        return `https://drive.google.com/uc?export=download&id=${id}`;
+        return `https://drive.google.com/uc?export=view&id=${id}`;
       }
   return `https://drive.google.com/thumbnail?id=${encodeURIComponent(t)}&sz=${size}`;
 }
@@ -1034,9 +1034,9 @@ function loadHighResIfNeeded() {
        <div class="zoom-wrap">
          <img referrerpolicy="no-referrer" 
               class="zoom-img" 
-              src="${eattr(toImageUrl(u, 'original'))}" 
+              src="${eattr(toImageUrl(u, 'w3000'))}" 
               data-token="${eattr(u)}"
-              data-current-size="w2400"
+              data-current-size="w3000"
               alt="${esc(title||'Item image')}">
        </div>
      </div>`
