@@ -970,7 +970,9 @@ function loadHighResIfNeeded() {
       // Scrolled to clone of last image at beginning
       setTimeout(() => {
         rail.style.scrollBehavior = 'auto';
+        rail.style.scrollSnapType = 'none';
         rail.scrollLeft = realCount * slideWidth;
+        rail.style.scrollSnapType = '';
         rail.style.scrollBehavior = '';
       }, 50);
       realIdx = realCount - 1;
@@ -978,7 +980,9 @@ function loadHighResIfNeeded() {
       // Scrolled to clone of first image at end
       setTimeout(() => {
         rail.style.scrollBehavior = 'auto';
+        rail.style.scrollSnapType = 'none';
         rail.scrollLeft = slideWidth;
+        rail.style.scrollSnapType = '';
         rail.style.scrollBehavior = '';
       }, 50);
       realIdx = 0;
@@ -1242,11 +1246,19 @@ $modalMeta.innerHTML = parts.map(p => esc(p)).join(" &nbsp; ");
       // Handle looping
       if (visualIdx === 0) {
         // At clone of last image
+        $modalRail.style.scrollBehavior = 'auto';
+        $modalRail.style.scrollSnapType = 'none';
         $modalRail.scrollLeft = realCount * slideWidth;
+        $modalRail.style.scrollSnapType = '';
+        $modalRail.style.scrollBehavior = '';
         realIdx = realCount - 1;
       } else if (visualIdx === realCount + 1) {
         // At clone of first image
+        $modalRail.style.scrollBehavior = 'auto';
+        $modalRail.style.scrollSnapType = 'none';
         $modalRail.scrollLeft = slideWidth;
+        $modalRail.style.scrollSnapType = '';
+        $modalRail.style.scrollBehavior = '';
         realIdx = 0;
       }
       
