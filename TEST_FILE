@@ -626,12 +626,13 @@ function loadHighResIfNeeded() {
   const currentSize = currentImg.dataset.currentSize;
   
   let neededSize;
-  if (scale > 3 && currentSize !== 'original') {
+  if (scale > 2.5 && currentSize !== 'original') {
     neededSize = 'original';
-  } else if (scale > 2 && currentSize !== 'w3000' && currentSize !== 'original') {
+  } else if (scale > 1.5 && currentSize !== 'w3000' && currentSize !== 'original') {
     neededSize = 'w3000';
-  } else if (scale > 1.5 && currentSize !== 'w2400' && currentSize !== 'w3000' && currentSize !== 'original') {
-    neededSize = 'w2400';
+  } else if (scale > 1 && currentSize === 'w2400') {
+    // Already at w2400, no need to reload
+    return;
   }
   
   if (neededSize) {
