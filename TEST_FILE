@@ -7,9 +7,7 @@
 <!-- Open Graph meta tags for link previews -->
 <meta property="og:title" content="Auction Catalog" id="og-title" />
 <meta property="og:description" content="Browse our auction inventory" id="og-description" />
-<meta property="og:image" content="" id="og-image" />
-<meta property="og:type" content="website" />
-<meta property="og:url" content="" id="og-url" />
+<meta property="og:image" content="https://static1.squarespace.com/static/658f74c94313f00569e8c75b/t/68d07505e80bf33f7162e7df/1758491909904/GEA_Blk%26Gold1200+x+630.png" id="og-image" /><meta property="og:url" content="" id="og-url" />
 <style type="text/css">
   :root { --gap: 20px; --card-radius: 14px; --max: 1200px; }
   body { font-family: Arial, sans-serif; margin: 0; padding: 24px; background: #fafafa; }
@@ -1083,35 +1081,35 @@ function loadHighResIfNeeded() {
     const r = ITEMS[idx];
     if (!r) return;
   
-    currentModalIndex = idx; // Store current index
-    window.currentModalIndex = idx; // Make it globally accessible
-    updateURL(r, idx);  // ADD THIS LINE
-    updateModalNavigation(); // Update prev/next buttons
-// Update meta tags for link preview
-const lotNumber = idx + 1; // Or use actual lot number if available in your data
-const itemTitle = r[COLS.title] || "Item";
-const primaryImage = imgs.length > 0 ? toImageUrl(imgs[0], 'original') : '';
-
-document.getElementById('og-title').setAttribute('content', `Lot ${lotNumber}: ${itemTitle}`);
-document.getElementById('og-description').setAttribute('content', r[COLS.desc] || `View details for ${itemTitle}`);
-document.getElementById('og-image').setAttribute('content', primaryImage);
-document.getElementById('og-url').setAttribute('content', window.location.href);
-document.title = `Lot ${lotNumber}: ${itemTitle}`;
+    currentModalIndex = idx;
+    window.currentModalIndex = idx;
+    updateURL(r, idx);
+    updateModalNavigation();
+    
+    // Get images first, before using them
+    const imgs = imagesFromRow(r);
+    
+    // Update meta tags for link preview
+    const lotNumber = idx + 1;
+    const itemTitle = r[COLS.title] || "Item";
+    const primaryImage = imgs.length > 0 ? toImageUrl(imgs[0], 'original') : '';
+    
+    document.getElementById('og-title').setAttribute('content', `Lot ${lotNumber}: ${itemTitle}`);
+    document.getElementById('og-description').setAttribute('content', r[COLS.desc] || `View details for ${itemTitle}`);
+    document.getElementById('og-image').setAttribute('content', primaryImage);
+    document.getElementById('og-url').setAttribute('content', window.location.href);
+    document.title = `Lot ${lotNumber}: ${itemTitle}`;
 
     $modalTitle.textContent = "Item details";
 
     const $modalBodyTitle = document.getElementById("modal-body-title");
-     if ($modalBodyTitle) {
-    $modalBodyTitle.textContent = r[COLS.title] || "Item details";
-  }
+    if ($modalBodyTitle) {
+        $modalBodyTitle.textContent = r[COLS.title] || "Item details";
+    }
 
     const parts=[];
-// Remove or comment out the caliber/gauge and condition lines
-// if (r[COLS.caliber]) parts.push(`Caliber: ${r[COLS.caliber]}`);
-// if (r[COLS.caliberGauge]) parts.push(`Caliber/Gauge: ${r[COLS.caliberGauge]}`);
-if (r[COLS.barrel])  parts.push(`Barrel: ${r[COLS.barrel]}`);
-// if (r[COLS.condition]) parts.push(`Condition: ${r[COLS.condition]}`);
-$modalMeta.innerHTML = parts.map(p => esc(p)).join(" &nbsp; ");
+    if (r[COLS.barrel]) parts.push(`Barrel: ${r[COLS.barrel]}`);
+    $modalMeta.innerHTML = parts.map(p => esc(p)).join(" &nbsp; ");
 
     const parsedPairs = parsePairs(r[COLS.desc]);
     const specsHTML = buildSpecs(r, parsedPairs);
@@ -1121,25 +1119,25 @@ $modalMeta.innerHTML = parts.map(p => esc(p)).join(" &nbsp; ");
     $modalPrice.textContent = r[COLS.price] ? ("$" + String(r[COLS.price])) : "";
 
     if (r[COLS.link]){ 
-      $modalView.style.display=""; 
-      $modalView.href = r[COLS.link]; 
+        $modalView.style.display=""; 
+        $modalView.href = r[COLS.link]; 
     } else { 
-      $modalView.style.display="none"; 
-      $modalView.removeAttribute("href"); 
+        $modalView.style.display="none"; 
+        $modalView.removeAttribute("href"); 
     }
     $modalBid.href = AUCTION_BID_URL;
 
-    const imgs = imagesFromRow(r);
     buildModalSlides(imgs, r[COLS.title]);
+    buildModalThumbs(imgs, r[COLS.title]);  // This line was missing
     
     $modal.classList.add("open");
     $modal.setAttribute("aria-hidden","false");
     
     // Start at first real image (index 1 because of prepended clone)
     if (imgs.length > 1) {
-      $modalRail.scrollLeft = $modalRail.clientWidth;
+        $modalRail.scrollLeft = $modalRail.clientWidth;
     } else {
-      $modalRail.scrollLeft = 0;
+        $modalRail.scrollLeft = 0;
     }
     attachSlideRefs(imgs.length > 1 ? 1 : 0);
   }
