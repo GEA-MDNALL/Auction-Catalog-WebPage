@@ -1090,7 +1090,6 @@ function loadHighResIfNeeded() {
 // Update meta tags for link preview
 const lotNumber = idx + 1; // Or use actual lot number if available in your data
 const itemTitle = r[COLS.title] || "Item";
-const imgs = imagesFromRow(r);
 const primaryImage = imgs.length > 0 ? toImageUrl(imgs[0], 'original') : '';
 
 document.getElementById('og-title').setAttribute('content', `Lot ${lotNumber}: ${itemTitle}`);
@@ -1132,7 +1131,6 @@ $modalMeta.innerHTML = parts.map(p => esc(p)).join(" &nbsp; ");
 
     const imgs = imagesFromRow(r);
     buildModalSlides(imgs, r[COLS.title]);
-    buildModalThumbs(imgs, r[COLS.title]);
     
     $modal.classList.add("open");
     $modal.setAttribute("aria-hidden","false");
