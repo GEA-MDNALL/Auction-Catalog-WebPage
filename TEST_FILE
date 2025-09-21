@@ -4,6 +4,12 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Catalog with Pagination</title>
+<!-- Open Graph meta tags for link previews -->
+<meta property="og:title" content="Auction Catalog" id="og-title" />
+<meta property="og:description" content="Browse our auction inventory" id="og-description" />
+<meta property="og:image" content="" id="og-image" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="" id="og-url" />
 <style type="text/css">
   :root { --gap: 20px; --card-radius: 14px; --max: 1200px; }
   body { font-family: Arial, sans-serif; margin: 0; padding: 24px; background: #fafafa; }
@@ -1081,6 +1087,17 @@ function loadHighResIfNeeded() {
     window.currentModalIndex = idx; // Make it globally accessible
     updateURL(r, idx);  // ADD THIS LINE
     updateModalNavigation(); // Update prev/next buttons
+// Update meta tags for link preview
+const lotNumber = idx + 1; // Or use actual lot number if available in your data
+const itemTitle = r[COLS.title] || "Item";
+const imgs = imagesFromRow(r);
+const primaryImage = imgs.length > 0 ? toImageUrl(imgs[0], 'original') : '';
+
+document.getElementById('og-title').setAttribute('content', `Lot ${lotNumber}: ${itemTitle}`);
+document.getElementById('og-description').setAttribute('content', r[COLS.desc] || `View details for ${itemTitle}`);
+document.getElementById('og-image').setAttribute('content', primaryImage);
+document.getElementById('og-url').setAttribute('content', window.location.href);
+document.title = `Lot ${lotNumber}: ${itemTitle}`;
 
     $modalTitle.textContent = "Item details";
 
@@ -1186,6 +1203,11 @@ $modalMeta.innerHTML = parts.map(p => esc(p)).join(" &nbsp; ");
 
     if (window.location.hash) {
     window.history.pushState(null, '', window.location.pathname);
+// Reset meta tags to defaults
+document.getElementById('og-title').setAttribute('content', 'Auction Catalog');
+document.getElementById('og-description').setAttribute('content', 'Browse our auction inventory');
+document.getElementById('og-image').setAttribute('content', '');
+document.title = 'Catalog with Pagination';
   }
   }
 
